@@ -1,0 +1,13 @@
+# vox — clangd needs Qt's include paths; qmake6 supplies them at build time,
+# this makes static analysis see the same headers without a compile database.
+CompileFlags:
+  Add:
+    - "-std=c++17"
+    - "-fPIC"
+    - "-I/usr/include/qt6"
+    - "-I/usr/include/qt6/QtCore"
+    - "-I/usr/include/qt6/QtGui"
+    - "-I/usr/include/qt6/QtQuick"
+    - "-I/usr/include/qt6/QtQml"
+    - "-I/usr/include/qt6/QtNetwork"
+    - "-I/usr/include/qt6/QtMultimedia"

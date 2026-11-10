@@ -1,0 +1,10 @@
+/build/
+/pkgbuild/pkg/
+/pkgbuild/src/
+*.pkg.tar.*
+moc_predefs.h
+moc_*.cpp
+qrc_resources.cpp
+*.o
+vox
+compile_commands.json
