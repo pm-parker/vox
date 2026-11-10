@@ -1,0 +1,38 @@
+#!/bin/bash
+
+# omarchy:summary=Record dictation using vox
+# omarchy:args=<start|stop|toggle>
+
+# vox runs as a daemon owning the microphone; this adapter only knocks on its
+# control socket. Push-to-talk maps to hold-start/hold-stop so the silence
+# auto-stop cannot cut a held take short; toggle keeps the tap-to-dictate mode.
+
+ensure_daemon() {
+  vox --status >/dev/null 2>&1 && return 0
+  # Not running: spawn the minimized daemon (window hidden, socket up) and
+  # give it a moment. Each retry is a cheap CLI-only socket probe.
+  setsid vox --minimized >/dev/null 2>&1 &
+  local _try
+  for _try in 1 2 3 4 5 6; do
+    sleep 0.3
+    vox --status >/dev/null 2>&1 && return 0
+  done
+  return 1
+}
+
+case "${1:-}" in
+  start)
+    ensure_daemon || exit 1
+    vox --hold-start >/dev/null 2>&1 || true
+    ;;
+  stop)
+    # A daemon that is already gone is not an error: omarchy-dictation-use
+    # calls stop on the previous backend when switching, and expects success.
+    vox --hold-stop >/dev/null 2>&1 || true
+    ;;
+  toggle)
+    ensure_daemon || exit 1
+    vox --toggle >/dev/null 2>&1 || true
+    ;;
+  *) echo "Usage: omarchy dictation vox <start|stop|toggle>" >&2; exit 1 ;;
+esac

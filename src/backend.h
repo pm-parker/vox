@@ -36,6 +36,11 @@ public:
     QString errorText() const { return m_errorText; }
 
     Q_INVOKABLE void toggle();
+    // Push-to-talk: hold the key to talk, release to insert. The silence gap
+    // that ends a tap-to-dictate take must not cut a held one short, so the
+    // hold ignores it and ends on the release instead.
+    Q_INVOKABLE void holdStart();
+    Q_INVOKABLE void holdStop();
     Q_INVOKABLE void repeatLast();
     Q_INVOKABLE void copyLast();
     Q_INVOKABLE void useHistoryText(int index);

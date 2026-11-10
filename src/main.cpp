@@ -1,10 +1,20 @@
+#include <QDateTime>
 #include <QGuiApplication>
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <QLocalSocket>
 #include <QQmlApplicationEngine>
+#include <QQuickWindow>
+#include <QStandardPaths>
+
+#include <cstdio>
 
 #include "backend.h"
+#include "controlserver.h"
 #include "engine.h"
 #include "inserter.h"
 #include "recorder.h"
+#include "statusreporter.h"
 #include "store.h"
 #include "theme.h"
 #include "translator.h"
@@ -13,7 +23,67 @@
 // Store (settings + history), Engine (SenseVoice), Recorder (parec),
 // Inserter (wtype/wl-copy), Theme (live Omarchy accent) and Translator
 // (live Omarchy language). QML renders Backend's state machine.
+//
+// Single instance: a second launch forwards its --command to the running
+// daemon's control socket and exits — that is how the Omarchy dictation
+// adapter drives push-to-talk without stealing focus.
+namespace {
+QString socketPath() {
+    return QStandardPaths::writableLocation(QStandardPaths::RuntimeLocation) + "/vox/control.sock";
+}
+
+bool forwardToRunning(const QString &command) {
+    QLocalSocket socket;
+    socket.connectToServer(socketPath());
+    if (!socket.waitForConnected(300))
+        return false;
+    socket.write(QJsonDocument(QJsonObject{{"command", command}}).toJson(QJsonDocument::Compact) + '\n');
+    socket.waitForBytesWritten(300);
+    socket.waitForReadyRead(500);
+    std::printf("%s\n", socket.readAll().constData());
+    socket.disconnectFromServer();
+    return true;
+}
+} // namespace
+
 int main(int argc, char *argv[]) {
+    // CLI mode first, before QGuiApplication grabs a display: vox --toggle
+    // --hold-start --hold-stop --status --show forward to the running daemon.
+    if (argc > 1 && argv[1][0] == '-') {
+        QString command;
+        for (int i = 1; i < argc; ++i) {
+            const QString arg = QString::fromUtf8(argv[i]);
+            if (arg == "--toggle") command = "toggle";
+            else if (arg == "--hold-start") command = "hold-start";
+            else if (arg == "--hold-stop") command = "hold-stop";
+            else if (arg == "--status") command = "status";
+            else if (arg == "--copy-last") command = "copy-last";
+            else if (arg == "--show") command = "show";
+            else if (arg == "--minimized") command = "__spawn"; // handled below
+            else { std::fprintf(stderr, "Usage: vox [--toggle|--hold-start|--hold-stop|--status|--copy-last|--show|--minimized]\n"); return 2; }
+        }
+        if (command == "__spawn") {
+            // --minimized only makes sense as the daemon's own flag; fall through
+            // to normal startup with the window hidden.
+        } else {
+            if (!forwardToRunning(command)) {
+                std::fprintf(stderr, "vox is not running\n");
+                return 1;
+            }
+            return 0;
+        }
+    } else if (forwardToRunning("status")) {
+        // Plain second launch: the daemon is already up — surface its window
+        // instead of fighting over the socket and the microphone.
+        forwardToRunning("show");
+        return 0;
+    }
+
+    bool minimized = false;
+    for (int i = 1; i < argc; ++i)
+        if (QString::fromUtf8(argv[i]) == "--minimized")
+            minimized = true;
+
     QGuiApplication app(argc, argv);
     QGuiApplication::setOrganizationName("omarchy");
     QGuiApplication::setApplicationName("vox");
@@ -24,6 +94,23 @@ int main(int argc, char *argv[]) {
     auto *recorder = new Recorder({}, &app);
     auto *inserter = new Inserter(&app);
     auto *backend = new Backend(store, engine, recorder, inserter, &app);
+    auto *reporter = new StatusReporter(&app);
+    auto *control = new ControlServer(backend, &app);
+    QObject::connect(backend, &Backend::stateChanged, reporter, [reporter, backend] {
+        reporter->setState(backend->state());
+    });
+    QObject::connect(backend, &Backend::levelChanged, reporter, [reporter, backend] {
+        reporter->setLevel(backend->level());
+    });
+    QObject::connect(backend, &Backend::lastTextChanged, reporter, [reporter, backend] {
+        reporter->setLast(backend->lastText(), QDateTime::currentSecsSinceEpoch());
+    });
+    QObject::connect(backend, &Backend::errorChanged, reporter, [reporter, backend] {
+        reporter->setError(backend->errorText());
+    });
+    QObject::connect(control, &ControlServer::quitRequested, &app, &QGuiApplication::quit);
+    QObject::connect(&app, &QGuiApplication::aboutToQuit, reporter, [reporter] { reporter->setOffline(); });
+    control->listen();
     auto *theme = new Theme(dataDir + "/current/theme", &app);
     auto *translator = new Translator(dataDir + "/current/language", ":/i18n", &app);
     qInfo() << "vox: collaborators wired";
@@ -54,6 +141,23 @@ int main(int argc, char *argv[]) {
 
     if (qml.rootObjects().isEmpty())
         return 1;
+
+    // "show" from the control socket (a plain second launch, or the bar
+    // panel) surfaces the window; --minimized keeps it hidden at startup.
+    QObject::connect(control, &ControlServer::showRequested, &app, [&qml] {
+        if (auto *window = qobject_cast<QQuickWindow *>(qml.rootObjects().value(0))) {
+            window->show();
+            window->raise();
+            window->requestActivate();
+        }
+    });
+
+    if (minimized) {
+        // Daemon mode for autostart and the dictation adapter: the window
+        // exists but stays hidden until "show" arrives.
+        if (auto *window = qobject_cast<QQuickWindow *>(qml.rootObjects().first()))
+            window->hide();
+    }
 
     return QGuiApplication::exec();
 }

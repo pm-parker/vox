@@ -54,6 +54,29 @@ void Backend::toggle() {
     emit statusChanged();
 }
 
+void Backend::holdStart() {
+    if (m_state != "idle")
+        return;
+    m_errorText.clear();
+    emit errorChanged();
+    const bool started = m_recorder->start(m_store->gapMs(), m_store->waitFirstMs(), m_store->maxMs(),
+                                           false, 0.012f);
+    if (!started)
+        return; // recorder already reported the failure
+    m_state = "listening";
+    m_statusLine = tr("Listening — release to insert");
+    emit stateChanged();
+    emit statusChanged();
+}
+
+void Backend::holdStop() {
+    if (m_state != "listening")
+        return;
+    m_statusLine = tr("Finishing…");
+    emit statusChanged();
+    m_recorder->stop("hold-release");
+}
+
 void Backend::onTakeFinished(const QString &wavPath, const QString &reason) {
     if (m_state != "listening")
         return;

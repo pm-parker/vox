@@ -60,14 +60,18 @@ SOURCES       = src/main.cpp \
 		src/recorder.cpp \
 		src/engine.cpp \
 		src/inserter.cpp \
-		src/textpipeline.cpp qrc_resources.cpp \
+		src/textpipeline.cpp \
+		src/controlserver.cpp \
+		src/statusreporter.cpp qrc_resources.cpp \
 		moc_backend.cpp \
 		moc_theme.cpp \
 		moc_translator.cpp \
 		moc_store.cpp \
 		moc_recorder.cpp \
 		moc_engine.cpp \
-		moc_inserter.cpp
+		moc_inserter.cpp \
+		moc_controlserver.cpp \
+		moc_statusreporter.cpp
 OBJECTS       = main.o \
 		backend.o \
 		theme.o \
@@ -77,6 +81,8 @@ OBJECTS       = main.o \
 		engine.o \
 		inserter.o \
 		textpipeline.o \
+		controlserver.o \
+		statusreporter.o \
 		qrc_resources.o \
 		moc_backend.o \
 		moc_theme.o \
@@ -84,7 +90,9 @@ OBJECTS       = main.o \
 		moc_store.o \
 		moc_recorder.o \
 		moc_engine.o \
-		moc_inserter.o
+		moc_inserter.o \
+		moc_controlserver.o \
+		moc_statusreporter.o
 DIST          = /usr/lib/qt6/mkspecs/features/spec_pre.prf \
 		/usr/lib/qt6/mkspecs/common/unix.conf \
 		/usr/lib/qt6/mkspecs/common/linux.conf \
@@ -320,7 +328,9 @@ DIST          = /usr/lib/qt6/mkspecs/features/spec_pre.prf \
 		src/recorder.h \
 		src/engine.h \
 		src/inserter.h \
-		src/textpipeline.h src/main.cpp \
+		src/textpipeline.h \
+		src/controlserver.h \
+		src/statusreporter.h src/main.cpp \
 		src/backend.cpp \
 		src/theme.cpp \
 		src/translator.cpp \
@@ -328,7 +338,9 @@ DIST          = /usr/lib/qt6/mkspecs/features/spec_pre.prf \
 		src/recorder.cpp \
 		src/engine.cpp \
 		src/inserter.cpp \
-		src/textpipeline.cpp
+		src/textpipeline.cpp \
+		src/controlserver.cpp \
+		src/statusreporter.cpp
 QMAKE_TARGET  = vox
 DESTDIR       = 
 TARGET        = vox
@@ -829,8 +841,8 @@ distdir: FORCE
 	$(COPY_FILE) --parents $(DIST) $(DISTDIR)/
 	$(COPY_FILE) --parents src/resources.qrc $(DISTDIR)/
 	$(COPY_FILE) --parents /usr/lib/qt6/mkspecs/features/data/dummy.cpp $(DISTDIR)/
-	$(COPY_FILE) --parents src/backend.h src/theme.h src/translator.h src/store.h src/recorder.h src/engine.h src/inserter.h src/textpipeline.h $(DISTDIR)/
-	$(COPY_FILE) --parents src/main.cpp src/backend.cpp src/theme.cpp src/translator.cpp src/store.cpp src/recorder.cpp src/engine.cpp src/inserter.cpp src/textpipeline.cpp $(DISTDIR)/
+	$(COPY_FILE) --parents src/backend.h src/theme.h src/translator.h src/store.h src/recorder.h src/engine.h src/inserter.h src/textpipeline.h src/controlserver.h src/statusreporter.h $(DISTDIR)/
+	$(COPY_FILE) --parents src/main.cpp src/backend.cpp src/theme.cpp src/translator.cpp src/store.cpp src/recorder.cpp src/engine.cpp src/inserter.cpp src/textpipeline.cpp src/controlserver.cpp src/statusreporter.cpp $(DISTDIR)/
 
 
 clean: compiler_clean 
@@ -870,9 +882,9 @@ compiler_moc_predefs_clean:
 moc_predefs.h: /usr/lib/qt6/mkspecs/features/data/dummy.cpp
 	g++ -pipe -O2 -std=gnu++17 -Wall -Wextra -dM -E -o moc_predefs.h /usr/lib/qt6/mkspecs/features/data/dummy.cpp
 
-compiler_moc_header_make_all: moc_backend.cpp moc_theme.cpp moc_translator.cpp moc_store.cpp moc_recorder.cpp moc_engine.cpp moc_inserter.cpp
+compiler_moc_header_make_all: moc_backend.cpp moc_theme.cpp moc_translator.cpp moc_store.cpp moc_recorder.cpp moc_engine.cpp moc_inserter.cpp moc_controlserver.cpp moc_statusreporter.cpp
 compiler_moc_header_clean:
-	-$(DEL_FILE) moc_backend.cpp moc_theme.cpp moc_translator.cpp moc_store.cpp moc_recorder.cpp moc_engine.cpp moc_inserter.cpp
+	-$(DEL_FILE) moc_backend.cpp moc_theme.cpp moc_translator.cpp moc_store.cpp moc_recorder.cpp moc_engine.cpp moc_inserter.cpp moc_controlserver.cpp moc_statusreporter.cpp
 moc_backend.cpp: src/backend.h \
 		moc_predefs.h \
 		/usr/lib/qt6/moc
@@ -908,6 +920,16 @@ moc_inserter.cpp: src/inserter.h \
 		/usr/lib/qt6/moc
 	/usr/lib/qt6/moc $(DEFINES) --include /home/h523034406/Work/vox/moc_predefs.h -I/usr/lib/qt6/mkspecs/linux-g++ -I/home/h523034406/Work/vox -I/usr/include/qt6 -I/usr/include/qt6/QtQuick -I/usr/include/qt6/QtOpenGL -I/usr/include/qt6/QtGui -I/usr/include/qt6/QtQml -I/usr/include/qt6/QtQmlIntegration -I/usr/include/qt6/QtNetwork -I/usr/include/qt6/QtCore -I/usr/include/c++/16 -I/usr/include/c++/16/x86_64-pc-linux-gnu -I/usr/include/c++/16/backward -I/usr/lib/gcc/x86_64-pc-linux-gnu/16/include -I/usr/local/include -I/usr/include src/inserter.h -o moc_inserter.cpp
 
+moc_controlserver.cpp: src/controlserver.h \
+		moc_predefs.h \
+		/usr/lib/qt6/moc
+	/usr/lib/qt6/moc $(DEFINES) --include /home/h523034406/Work/vox/moc_predefs.h -I/usr/lib/qt6/mkspecs/linux-g++ -I/home/h523034406/Work/vox -I/usr/include/qt6 -I/usr/include/qt6/QtQuick -I/usr/include/qt6/QtOpenGL -I/usr/include/qt6/QtGui -I/usr/include/qt6/QtQml -I/usr/include/qt6/QtQmlIntegration -I/usr/include/qt6/QtNetwork -I/usr/include/qt6/QtCore -I/usr/include/c++/16 -I/usr/include/c++/16/x86_64-pc-linux-gnu -I/usr/include/c++/16/backward -I/usr/lib/gcc/x86_64-pc-linux-gnu/16/include -I/usr/local/include -I/usr/include src/controlserver.h -o moc_controlserver.cpp
+
+moc_statusreporter.cpp: src/statusreporter.h \
+		moc_predefs.h \
+		/usr/lib/qt6/moc
+	/usr/lib/qt6/moc $(DEFINES) --include /home/h523034406/Work/vox/moc_predefs.h -I/usr/lib/qt6/mkspecs/linux-g++ -I/home/h523034406/Work/vox -I/usr/include/qt6 -I/usr/include/qt6/QtQuick -I/usr/include/qt6/QtOpenGL -I/usr/include/qt6/QtGui -I/usr/include/qt6/QtQml -I/usr/include/qt6/QtQmlIntegration -I/usr/include/qt6/QtNetwork -I/usr/include/qt6/QtCore -I/usr/include/c++/16 -I/usr/include/c++/16/x86_64-pc-linux-gnu -I/usr/include/c++/16/backward -I/usr/lib/gcc/x86_64-pc-linux-gnu/16/include -I/usr/local/include -I/usr/include src/statusreporter.h -o moc_statusreporter.cpp
+
 compiler_moc_objc_header_make_all:
 compiler_moc_objc_header_clean:
 compiler_moc_source_make_all:
@@ -923,9 +945,11 @@ compiler_clean: compiler_rcc_clean compiler_moc_predefs_clean compiler_moc_heade
 ####### Compile
 
 main.o: src/main.cpp src/backend.h \
+		src/controlserver.h \
 		src/engine.h \
 		src/inserter.h \
 		src/recorder.h \
+		src/statusreporter.h \
 		src/store.h \
 		src/theme.h \
 		src/translator.h
@@ -961,6 +985,14 @@ textpipeline.o: src/textpipeline.cpp src/textpipeline.h \
 		src/store.h
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o textpipeline.o src/textpipeline.cpp
 
+controlserver.o: src/controlserver.cpp src/controlserver.h \
+		src/backend.h
+	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o controlserver.o src/controlserver.cpp
+
+statusreporter.o: src/statusreporter.cpp src/statusreporter.h \
+		src/store.h
+	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o statusreporter.o src/statusreporter.cpp
+
 qrc_resources.o: qrc_resources.cpp 
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o qrc_resources.o qrc_resources.cpp
 
@@ -984,6 +1016,12 @@ moc_engine.o: moc_engine.cpp
 
 moc_inserter.o: moc_inserter.cpp 
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o moc_inserter.o moc_inserter.cpp
+
+moc_controlserver.o: moc_controlserver.cpp 
+	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o moc_controlserver.o moc_controlserver.cpp
+
+moc_statusreporter.o: moc_statusreporter.cpp 
+	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o moc_statusreporter.o moc_statusreporter.cpp
 
 ####### Install
 

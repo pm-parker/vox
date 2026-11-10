@@ -12,7 +12,9 @@ SOURCES += \
     src/recorder.cpp \
     src/engine.cpp \
     src/inserter.cpp \
-    src/textpipeline.cpp
+    src/textpipeline.cpp \
+    src/controlserver.cpp \
+    src/statusreporter.cpp
 
 HEADERS += \
     src/backend.h \
@@ -22,6 +24,8 @@ HEADERS += \
     src/recorder.h \
     src/engine.h \
     src/inserter.h \
-    src/textpipeline.h
+    src/textpipeline.h \
+    src/controlserver.h \
+    src/statusreporter.h
 
 RESOURCES += src/resources.qrc
