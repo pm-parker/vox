@@ -13,7 +13,7 @@
 #include "backend.h"
 
 namespace {
-constexpr char kTemplate[] = ":/vox/icons/mic.svg";
+constexpr char kTemplate[] = ":/duckvox/icons/duck.svg";
 } // namespace
 
 QIcon TrayIcon::micIcon(const QColor &color) {
@@ -33,7 +33,7 @@ QIcon TrayIcon::micIcon(const QColor &color) {
 TrayIcon::TrayIcon(Backend *backend, QQuickWindow *window, QObject *parent)
     : QObject(parent), m_backend(backend), m_window(window) {
     m_tray = new QSystemTrayIcon(micIcon(QColor(0xEE, 0xEE, 0xEE)), this);
-    m_tray->setToolTip(tr("vox — idle"));
+    m_tray->setToolTip(tr("duckvox — idle"));
 
     m_menu = new QMenu;
     m_state = m_menu->addAction(tr("Idle"));
@@ -42,7 +42,7 @@ TrayIcon::TrayIcon(Backend *backend, QQuickWindow *window, QObject *parent)
     m_toggle = m_menu->addAction(tr("Start dictating"), [this] { m_backend->toggle(); });
     m_copy = m_menu->addAction(tr("Copy last transcription"), [this] { m_backend->copyLast(); });
     m_menu->addSeparator();
-    m_quit = m_menu->addAction(tr("Quit vox"), [] { QCoreApplication::quit(); });
+    m_quit = m_menu->addAction(tr("Quit duckvox"), [] { QCoreApplication::quit(); });
     m_tray->setContextMenu(m_menu);
 
     // Left click toggles the window; the context menu owns right click.
@@ -63,13 +63,13 @@ TrayIcon::TrayIcon(Backend *backend, QQuickWindow *window, QObject *parent)
     QObject::connect(m_backend, &Backend::stateChanged, this, [this] {
         const QString state = m_backend->state();
         if (state == QLatin1String("listening")) {
-            m_tray->setToolTip(tr("vox — listening (release to insert)"));
+            m_tray->setToolTip(tr("duckvox — listening (release to insert)"));
             refreshIcon();
         } else if (state == QLatin1String("processing")) {
-            m_tray->setToolTip(tr("vox — transcribing"));
+            m_tray->setToolTip(tr("duckvox — transcribing"));
             refreshIcon();
         } else {
-            m_tray->setToolTip(tr("vox — idle"));
+            m_tray->setToolTip(tr("duckvox — idle"));
             refreshIcon();
         }
         rebuildMenu();

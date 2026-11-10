@@ -1,7 +1,7 @@
 QT += core gui quick network widgets svg
 CONFIG += c++17
 TEMPLATE = app
-TARGET = vox
+TARGET = duckvox
 
 SOURCES += \
     src/main.cpp \

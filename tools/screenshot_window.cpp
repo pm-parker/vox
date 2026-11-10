@@ -1,6 +1,6 @@
 // Offscreen screenshot generator for the README.
 //
-// Renders the real window (qrc:/vox/ui/Main.qml with the real Store, Engine,
+// Renders the real window (qrc:/duckvox/ui/Main.qml with the real Store, Engine,
 // Recorder, Inserter, Backend, Theme and Translator that main.cpp wires) under
 // the offscreen platform, then grabs pixel frames of each state. Speech is
 // real: a PATH shim puts a fake `parec` first for this process only, and that
@@ -102,7 +102,7 @@ int main(int argc, char *argv[]) {
     QObject::connect(
         &qml, &QQmlApplicationEngine::objectCreationFailed, &app, [] { QGuiApplication::exit(1); },
         Qt::QueuedConnection);
-    qml.load(QUrl("qrc:/vox/ui/Main.qml"));
+    qml.load(QUrl("qrc:/duckvox/ui/Main.qml"));
     if (qml.rootObjects().isEmpty())
         return 1;
 

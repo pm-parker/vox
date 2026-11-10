@@ -29,6 +29,10 @@ ApplicationWindow {
 
     readonly property bool listening: Backend.state === "listening"
     readonly property bool processing: Backend.state === "processing"
+    // Two pages: the dictation stage and the settings surface. Settings used
+    // to live below the history list in one long column and ended up mostly
+    // off-screen; a tab keeps every card reachable.
+    property int page: 0
 
     component PillButton: Button {
         id: pill
@@ -92,7 +96,8 @@ ApplicationWindow {
         focus: true
         Keys.forwardTo: [scroll]
         Keys.onPressed: (event) => {
-            if (event.key === Qt.Key_Space) { Backend.toggle(); event.accepted = true }
+            if (event.key === Qt.Key_Space) { if (root.page === 0) Backend.toggle(); event.accepted = true }
+            else if (event.key === Qt.Key_Left || event.key === Qt.Key_Right) { root.page = root.page === 0 ? 1 : 0; event.accepted = true }
             else if (event.key === Qt.Key_R) { Backend.repeatLast(); event.accepted = true }
             else if (event.key === Qt.Key_C) { Backend.copyLast(); event.accepted = true }
             else if (event.key === Qt.Key_M) {
@@ -106,7 +111,7 @@ ApplicationWindow {
         RowLayout {
             Layout.fillWidth: true
             Label {
-                text: "vox"
+                text: "DuckVox"
                 color: root.accent
                 font.pixelSize: 20
                 font.bold: true
@@ -129,6 +134,55 @@ ApplicationWindow {
                 }
             }
         }
+
+        // Page tabs — keyboard: Left/Right switches pages.
+        RowLayout {
+            Layout.fillWidth: true
+            spacing: 8
+            PillButton {
+                text: qsTr("Dictate")
+                background: Rectangle {
+                    radius: root.rad
+                    color: root.page === 0 ? root.accent : root.surfaceUp
+                    border.color: root.page === 0 ? root.accent : root.line
+                    border.width: 1
+                }
+                contentItem: Text {
+                    text: parent.text
+                    color: root.page === 0 ? root.accentFg : root.fg
+                    font.pixelSize: 13
+                    horizontalAlignment: Text.AlignHCenter
+                    verticalAlignment: Text.AlignVCenter
+                }
+                onClicked: root.page = 0
+            }
+            PillButton {
+                text: qsTr("Settings")
+                background: Rectangle {
+                    radius: root.rad
+                    color: root.page === 1 ? root.accent : root.surfaceUp
+                    border.color: root.page === 1 ? root.accent : root.line
+                    border.width: 1
+                }
+                contentItem: Text {
+                    text: parent.text
+                    color: root.page === 1 ? root.accentFg : root.fg
+                    font.pixelSize: 13
+                    horizontalAlignment: Text.AlignHCenter
+                    verticalAlignment: Text.AlignVCenter
+                }
+                onClicked: root.page = 1
+            }
+            Item { Layout.fillWidth: true }
+        }
+
+        // Dictate page
+        ColumnLayout {
+            id: dictatePage
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+            visible: root.page === 0
+            spacing: 12
 
         // Mic stage
         Item {
@@ -346,12 +400,16 @@ ApplicationWindow {
             }
         }
 
-        // Scrollable body: settings grow with features, the window need
-        // not. Keys.forwardTo (above) feeds PgUp/PgDn/arrows to the bar.
+        }
+        } // dictatePage
+
+        // Settings page: its own scrollable surface so every card stays
+        // reachable. Keys.forwardTo (above) feeds PgUp/PgDn/arrows to the bar.
         Flickable {
             id: scroll
             Layout.fillWidth: true
             Layout.fillHeight: true
+            visible: root.page === 1
             contentHeight: body.height
             clip: true
             boundsBehavior: Flickable.StopAtBounds
@@ -427,7 +485,79 @@ ApplicationWindow {
                 onChange: (checked) => Settings.autostart = checked
             }
 
-                // Recognition card
+                // Appearance card — the DuckVox brand switch
+        Rectangle {
+            Layout.fillWidth: true
+            radius: root.rad
+            color: root.surface
+            border.color: root.line
+            border.width: 1
+            implicitHeight: appearanceColumn.implicitHeight + 24
+            ColumnLayout {
+                id: appearanceColumn
+                anchors.fill: parent
+                anchors.margins: 12
+                spacing: 8
+                RowLayout {
+                    Layout.fillWidth: true
+                    spacing: 8
+                    Rectangle {
+                        width: 8; height: 8; radius: 4
+                        anchors.verticalCenter: parent.verticalCenter
+                        color: root.dim
+                    }
+                    Label {
+                        text: qsTr("Appearance")
+                        color: root.fg
+                        font.pixelSize: 13
+                        Layout.fillWidth: true
+                    }
+                }
+                RowLayout {
+                    Layout.fillWidth: true
+                    Label {
+                        text: qsTr("Duck yellow accent")
+                        color: root.fg
+                        font.pixelSize: 13
+                        Layout.fillWidth: true
+                    }
+                    RowLayout {
+                        spacing: 6
+                        Rectangle {
+                            width: 16; height: 16; radius: 8
+                            color: "#FFD338"
+                            border.color: root.line
+                        }
+                        PillButton {
+                            property bool on: Settings.duckYellow
+                            text: on ? qsTr("On") : qsTr("Off")
+                            background: Rectangle {
+                                radius: root.rad
+                                color: parent.on ? root.accent : root.surfaceUp
+                                border.color: root.line
+                            }
+                            contentItem: Text {
+                                text: parent.text
+                                color: parent.on ? root.accentFg : root.fg
+                                font.pixelSize: 13
+                                horizontalAlignment: Text.AlignHCenter
+                                verticalAlignment: Text.AlignVCenter
+                            }
+                            onClicked: Settings.duckYellow = !Settings.duckYellow
+                        }
+                    }
+                }
+                Label {
+                    Layout.fillWidth: true
+                    text: qsTr("Follow the Omarchy theme")
+                    color: root.dim
+                    font.pixelSize: 11
+                    visible: !Settings.duckYellow
+                }
+            }
+        }
+
+        // Recognition card
         Rectangle {
             Layout.fillWidth: true
             radius: root.rad
@@ -922,7 +1052,6 @@ ApplicationWindow {
                 }
             }
         }
-            }
         }
     }
 }

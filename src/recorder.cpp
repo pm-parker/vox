@@ -15,7 +15,7 @@ constexpr int kWindowSamples = 320; // 20 ms RMS windows
 Recorder::Recorder(const QString &takesDirectory, QObject *parent)
     : QObject(parent),
       m_takesDirectory(takesDirectory.isEmpty()
-                           ? QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation) + "/vox/takes"
+                           ? QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation) + "/duckvox/takes"
                            : takesDirectory) {
     QDir().mkpath(m_takesDirectory);
     m_clockTick.setInterval(100);
@@ -114,7 +114,7 @@ void Recorder::warmUp(const QString &source) {
     spawnCapture();
     m_warm = m_capture.state() != QProcess::NotRunning;
     if (m_warm)
-        qInfo() << "vox: warm microphone capture running";
+        qInfo() << "duckvox: warm microphone capture running";
 }
 
 void Recorder::feed(const QByteArray &pcm) {
@@ -125,7 +125,7 @@ void Recorder::feed(const QByteArray &pcm) {
     if (!m_recording)
         return;
     if (m_dataBytes == 0 && !pcm.isEmpty())
-        qInfo() << "vox: first audio packet after" << m_clock.elapsed() << "ms (" << pcm.size() << "B)";
+        qInfo() << "duckvox: first audio packet after" << m_clock.elapsed() << "ms (" << pcm.size() << "B)";
     m_take.write(pcm);
     m_dataBytes += pcm.size();
 
@@ -191,7 +191,7 @@ void Recorder::stop(const QString &reason) {
 void Recorder::finish(const QString &reason, const QString &error) {
     m_clockTick.stop();
     m_lastElapsedMs = int(m_clock.elapsed());
-    qInfo() << "vox: take" << reason << m_lastElapsedMs << "ms," << m_dataBytes << "B"
+    qInfo() << "duckvox: take" << reason << m_lastElapsedMs << "ms," << m_dataBytes << "B"
             << (m_hasSpoken ? "voice" : "no-voice");
     if (m_take.isOpen()) {
         // Patch the RIFF sizes now that the data length is known.

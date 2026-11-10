@@ -8,8 +8,8 @@ import qs.Ui
 
 Panel {
   id: root
-  moduleName: "vox"
-  ipcTarget: "vox"
+  moduleName: "duckvox"
+  ipcTarget: "duckvox"
   manageIpc: false
 
   property bool centredOnBar: false
@@ -309,7 +309,7 @@ Panel {
           }
           VoxButton {
             width: parent.width
-            label: "Open the vox window"
+            label: "Open the DuckVox window"
             hint: "O"
             activated: function() { sw.showWindow(); root.close() }
           }

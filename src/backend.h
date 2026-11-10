@@ -32,12 +32,12 @@ class Backend : public QObject {
     Q_PROPERTY(QVariantList dictionary READ dictionary NOTIFY dictionaryChanged)
     Q_PROPERTY(QVariantList micSources READ micSources NOTIFY micSourcesChanged)
     // The active speech model (Engine downloads/transcribes with it) and
-    // whether vox starts minimized at login.
+    // whether duckvox starts minimized at login.
     Q_PROPERTY(QString model READ model WRITE setModel NOTIFY settingsChanged)
     Q_PROPERTY(bool autostart READ autostart WRITE setAutostart NOTIFY settingsChanged)
     // Global hotkeys {toggleKey, pttKey} — Hyprland syntax. Writes go to
-    // the store and immediately re-run omarchy-dictation-vox-keys, which
-    // regenerates ~/.config/vox/shortcuts.lua and reloads the binds.
+    // the store and immediately re-run omarchy-dictation-duckvox-keys, which
+    // regenerates ~/.config/duckvox/shortcuts.lua and reloads the binds.
     Q_PROPERTY(QJsonObject shortcuts READ shortcuts WRITE setShortcuts NOTIFY settingsChanged)
 
 public:
@@ -74,7 +74,7 @@ public:
     // never secretly opts the user in.
     Q_INVOKABLE void applyAutostart();
     // Regenerate the shortcut file and reload the binds (runs the packaged
-    // omarchy-dictation-vox-keys). resetShortcuts also clears the saved
+    // omarchy-dictation-duckvox-keys). resetShortcuts also clears the saved
     // overrides, returning the card to the Alt+Space / Alt_R defaults.
     Q_INVOKABLE void applyShortcuts();
     Q_INVOKABLE void resetShortcuts();

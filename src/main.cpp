@@ -1,5 +1,8 @@
 #include <QDateTime>
 #include <QApplication>
+#include <QDir>
+#include <QFile>
+#include <QIcon>
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QLocalSocket>
@@ -21,6 +24,57 @@
 #include "translator.h"
 #include "trayicon.h"
 
+// Rename-day migration (pre-2.0 installs): move ~/.local/share/vox to
+// ~/.local/share/duckvox wholesale — models, settings, history, takes. A
+// moved dir needs no copy; a partial copy is deleted so a later run retries.
+void migrateLegacyDataDir() {
+    const QString dataRoot = QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation);
+    const QDir legacy(dataRoot + "/vox");
+    if (legacy.exists()) {
+        const QString target = dataRoot + "/duckvox";
+        if (QDir(target).exists()) {
+            // Both exist: duckvox owns the future. Take only what the old dir
+            // has that the new one lacks, then retire the legacy dir.
+            for (const QString &entry :
+                 legacy.entryList(QDir::AllEntries | QDir::Hidden | QDir::NoDotAndDotDot))
+                if (!QFileInfo::exists(target + "/" + entry))
+                    QFile::rename(legacy.absolutePath() + "/" + entry, target + "/" + entry);
+            QDir(dataRoot).rmdir("vox"); // rmdir: only succeeds when empty
+        } else if (QDir(dataRoot).rename("vox", "duckvox")) {
+            qInfo() << "duckvox: migrated data directory from ~/.local/share/vox";
+        }
+    }
+
+    // Hotkey overrides and the start-at-login line move too. The adapter
+    // script reads ~/.config/duckvox/shortcuts.lua, and autostart must
+    // launch the new binary or the next login resurrects the old name.
+    // GenericConfigLocation is ~/.config itself (AppConfigLocation would
+    // nest under ~/.config/duckvox and never see hypr/).
+    const QString configRoot = QStandardPaths::writableLocation(QStandardPaths::GenericConfigLocation);
+    const QDir legacyConfig(configRoot + "/vox");
+    if (legacyConfig.exists())
+        QDir(configRoot).rename("vox", "duckvox");
+    const QString autostartFile = configRoot + "/hypr/autostart.lua";
+    QFile autostart(autostartFile);
+    if (autostart.open(QIODevice::ReadOnly)) {
+        QString text = QString::fromUtf8(autostart.readAll());
+        autostart.close();
+        const QString updated = text.replace(QLatin1String("vox --minimized"),
+                                             QLatin1String("duckvox --minimized"));
+        if (updated != text && autostart.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
+            autostart.write(updated.toUtf8());
+            autostart.close();
+        }
+    }
+
+    // The bar plugin under the user's plugins dir keeps its id, but its
+    // description/poll target changed name; the package's installer re-syncs
+    // it on upgrade, so just drop a stale copy's config twin.
+    const QDir legacyPanel(QDir::homePath() + "/.config/omarchy/plugins/vox-panel");
+    if (legacyPanel.exists())
+        QDir(legacyPanel.path()).removeRecursively();
+}
+
 // One window, one job. Omarchy's own apps wire the same collaborators:
 // Store (settings + history), Engine (SenseVoice), Recorder (parec),
 // Inserter (wtype/wl-copy), Theme (live Omarchy accent) and Translator
@@ -31,7 +85,7 @@
 // adapter drives push-to-talk without stealing focus.
 namespace {
 QString socketPath() {
-    return QStandardPaths::writableLocation(QStandardPaths::RuntimeLocation) + "/vox/control.sock";
+    return QStandardPaths::writableLocation(QStandardPaths::RuntimeLocation) + "/duckvox/control.sock";
 }
 
 bool forwardToRunning(const QString &command) {
@@ -47,12 +101,12 @@ bool forwardToRunning(const QString &command) {
     return true;
 }
 
-// --print-setting KEY reads ~/.local/share/vox/settings.json offline — the
-// keys script runs it while vox may not be running, and must never spawn a
+// --print-setting KEY reads ~/.local/share/duckvox/settings.json offline — the
+// keys script runs it while duckvox may not be running, and must never spawn a
 // daemon just to learn a key name. Shell-safe output: single value, no echo.
 int printSetting(const QString &key) {
     QFile file(QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation)
-               + "/vox/settings.json");
+               + "/duckvox/settings.json");
     // "shortcuts.pttKey" means the pttKey member of the shortcuts object;
     // everything else is a top-level settings key.
     const QString leaf = key.section('.', -1);
@@ -77,7 +131,7 @@ int printSetting(const QString &key) {
 } // namespace
 
 int main(int argc, char *argv[]) {
-    // CLI mode first, before QApplication grabs a display: vox --toggle
+    // CLI mode first, before QApplication grabs a display: duckvox --toggle
     // --hold-start --hold-stop --status --show forward to the running daemon.
     if (argc > 1 && argv[1][0] == '-') {
         QString command;
@@ -91,15 +145,15 @@ int main(int argc, char *argv[]) {
             else if (arg == "--show") command = "show";
             else if (arg == "--print-setting") {
                 // Offline: read settings.json and print one value (used by
-                // omarchy-dictation-vox-keys). Only the shortcuts subkeys.
+                // omarchy-dictation-duckvox-keys). Only the shortcuts subkeys.
                 if (i + 1 >= argc) {
-                    std::fprintf(stderr, "Usage: vox --print-setting toggleKey|pttKey\n");
+                    std::fprintf(stderr, "Usage: duckvox --print-setting toggleKey|pttKey\n");
                     return 2;
                 }
                 return printSetting(QString::fromUtf8(argv[i + 1]));
             }
             else if (arg == "--minimized") command = "__spawn"; // handled below
-            else { std::fprintf(stderr, "Usage: vox [--toggle|--hold-start|--hold-stop|--status|--copy-last|--show|--minimized|--print-setting KEY]\n"); return 2; }
+            else { std::fprintf(stderr, "Usage: duckvox [--toggle|--hold-start|--hold-stop|--status|--copy-last|--show|--minimized|--print-setting KEY]\n"); return 2; }
         }
         if (command == "__spawn") {
             // --minimized only makes sense as the daemon's own flag; fall
@@ -112,7 +166,7 @@ int main(int argc, char *argv[]) {
             }
         } else {
             if (!forwardToRunning(command)) {
-                std::fprintf(stderr, "vox is not running\n");
+                std::fprintf(stderr, "duckvox is not running\n");
                 return 1;
             }
             return 0;
@@ -131,11 +185,13 @@ int main(int argc, char *argv[]) {
 
     QApplication app(argc, argv);
     QApplication::setOrganizationName("omarchy");
-    QApplication::setApplicationName("vox");
+    QApplication::setApplicationName("duckvox");
+    QApplication::setWindowIcon(QIcon(":/duckvox/icons/duck.svg"));
+    migrateLegacyDataDir();
 
     const QString dataDir = QApplication::applicationDirPath() + "/data";
     auto *store = new Store({}, &app);
-    auto *engine = new Engine({}, &app); // default model dir under ~/.local/share/vox
+    auto *engine = new Engine({}, &app); // default model dir under ~/.local/share/duckvox
     auto *recorder = new Recorder({}, &app);
     // Wake the microphone before the first hotkey: PipeWire sources suspend
     // when idle and swallow everything said while waking up.
@@ -165,7 +221,14 @@ int main(int argc, char *argv[]) {
     control->listen();
     auto *theme = new Theme(dataDir + "/current/theme", &app);
     auto *translator = new Translator(dataDir + "/current/language", ":/i18n", &app);
-    qInfo() << "vox: collaborators wired";
+    // Brand switch: settings wins over the theme. The store's default (true)
+    // keeps every fresh install in duck yellow; turning it off returns the
+    // accent to Omarchy's live theme.
+    theme->setDuckYellow(store->duckYellow());
+    QObject::connect(store, &Store::settingsChanged, theme, [store, theme] {
+        theme->setDuckYellow(store->duckYellow());
+    });
+    qInfo() << "duckvox: collaborators wired";
 
     qmlRegisterSingletonInstance("Vox", 1, 0, "Backend", backend);
     qmlRegisterSingletonInstance("Vox", 1, 0, "Settings", store);
@@ -188,8 +251,8 @@ int main(int argc, char *argv[]) {
         [] { QApplication::exit(1); }, Qt::QueuedConnection);
     // Plain qmake + RESOURCES has no qmldir, so load the qrc URL directly
     // instead of loadFromModule (that path needs qt_add_qml_module).
-    qml.load(QUrl("qrc:/vox/ui/Main.qml"));
-    qInfo() << "vox: qml.load returned, rootObjects =" << qml.rootObjects().size();
+    qml.load(QUrl("qrc:/duckvox/ui/Main.qml"));
+    qInfo() << "duckvox: qml.load returned, rootObjects =" << qml.rootObjects().size();
 
     if (qml.rootObjects().isEmpty())
         return 1;
@@ -213,7 +276,7 @@ int main(int argc, char *argv[]) {
 
     // Native tray icon: the mic follows the dictation state, the menu drives
     // dictate/copy, and closing the window hides to the tray instead of
-    // quitting — vox stays a dictation daemon until Quit is chosen.
+    // quitting — duckvox stays a dictation daemon until Quit is chosen.
     auto *rootWindow = qobject_cast<QQuickWindow *>(qml.rootObjects().value(0));
     auto *tray = new TrayIcon(backend, rootWindow, &app);
     Q_UNUSED(tray)

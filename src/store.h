@@ -7,7 +7,7 @@
 #include <QVariantList>
 
 // Settings, history, and the user dictionary, persisted as JSON under one
-// root (default ~/.local/share/vox). Every write is atomic — a temp file
+// root (default ~/.local/share/duckvox). Every write is atomic — a temp file
 // beside the target, then rename — so a crash never leaves half a store, the
 // same care Omacut takes with exports. History is capped like crostivoice's
 // (50 items): a recall aid, not an archive.
@@ -28,11 +28,14 @@ class Store : public QObject {
     // Active speech model id (see Engine::catalog); Engine downloads and
     // transcribes with it.
     Q_PROPERTY(QString model READ model WRITE setModel NOTIFY settingsChanged)
-    // Launch vox --minimized at login (Omarchy autostart entry).
+    // Launch duckvox --minimized at login (Omarchy autostart entry).
     Q_PROPERTY(bool autostart READ autostart WRITE setAutostart NOTIFY settingsChanged)
     // Global hotkeys as {toggleKey, pttKey}, applied through
-    // ~/.config/vox/shortcuts.lua by omarchy-dictation-vox-keys.
+    // ~/.config/duckvox/shortcuts.lua by omarchy-dictation-duckvox-keys.
     Q_PROPERTY(QJsonObject shortcuts READ shortcuts WRITE setShortcuts NOTIFY settingsChanged)
+    // Brand color: duck yellow regardless of the Omarchy theme. Off = follow
+    // the live theme accent like every other Omarchy app.
+    Q_PROPERTY(bool duckYellow READ duckYellow WRITE setDuckYellow NOTIFY settingsChanged)
 
 public:
     explicit Store(const QString &directory = {}, QObject *parent = nullptr);
@@ -67,6 +70,8 @@ public:
     void setAutostart(bool on);
     QJsonObject shortcuts() const;
     void setShortcuts(const QJsonObject &keys);
+    bool duckYellow() const;
+    void setDuckYellow(bool on);
 
     // --- dictionary ---
     QVariantList dictionary() const;

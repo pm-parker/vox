@@ -9,7 +9,7 @@
 #include <QThread>
 
 namespace {
-// The catalog: every model vox can download, with the exact flags its
+// The catalog: every model duckvox can download, with the exact flags its
 // sherpa-onnx-offline invocation takes. URLs and sizes verified by HEAD
 // request + probe extraction on 2026-11-10; all three archives unpack to
 // <dirName>/ with the files listed.
@@ -79,7 +79,7 @@ const ModelSpec &Engine::spec() const {
 Engine::Engine(const QString &modelsDirectory, QObject *parent)
     : QObject(parent),
       m_dir(modelsDirectory.isEmpty()
-                ? QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation) + "/vox/models"
+                ? QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation) + "/duckvox/models"
                 : modelsDirectory) {
     QDir().mkpath(m_dir);
     m_bin = findBin(m_dir);
@@ -248,7 +248,7 @@ void Engine::finishDownload() {
     const bool ok = !m_bin.isEmpty()
                     && QFileInfo::exists(m_dir + "/" + active.dirName + "/" + active.modelFile);
     if (!ok) {
-        m_error = tr("The model archive did not contain what vox expected.");
+        m_error = tr("The model archive did not contain what duckvox expected.");
         setPhase("error");
         return;
     }

@@ -13,7 +13,7 @@
 
 Store::Store(const QString &directory, QObject *parent)
     : QObject(parent),
-      m_directory(directory.isEmpty() ? QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation) + "/vox"
+      m_directory(directory.isEmpty() ? QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation) + "/duckvox"
                                       : directory) {
     QDir().mkpath(m_directory);
     load();
@@ -120,6 +120,10 @@ QJsonObject Store::shortcuts() const {
 }
 
 void Store::setShortcuts(const QJsonObject &keys) { setSetting("shortcuts", keys); }
+
+bool Store::duckYellow() const { return m_settings.value("duckYellow", true).toBool(); }
+
+void Store::setDuckYellow(bool on) { setSetting("duckYellow", on); }
 
 QVariantList Store::dictionary() const { return m_dictionary; }
 

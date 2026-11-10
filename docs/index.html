@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>vox · Omarchy 的离线语音输入</title>
+<title>duckvox · Omarchy 的离线语音输入</title>
 <style>
   * { margin:0; padding:0; box-sizing:border-box; }
   :root {
@@ -166,10 +166,10 @@
         <path d="M5 15a11 11 0 0 0 22 0" stroke="#1F6FEB" stroke-width="2.6" stroke-linecap="round" fill="none"/>
         <path d="M16 26v4" stroke="#1F6FEB" stroke-width="2.6" stroke-linecap="round"/>
       </svg>
-      <span class="name">vox</span>
+      <span class="name">duckvox</span>
     </a>
     <div class="nav-menu">
-      <a href="#why">Why vox</a>
+      <a href="#why">Why duckvox</a>
       <a href="#capabilities">Capabilities</a>
       <a href="#benchmark">Benchmark</a>
       <a href="#ui">UI</a>
@@ -187,7 +187,7 @@
     </a>
   </div>
   <div class="nav-drawer" id="drawer">
-    <a href="#why">Why vox <span class="zh">为什么</span></a>
+    <a href="#why">Why duckvox <span class="zh">为什么</span></a>
     <a href="#capabilities">Capabilities <span class="zh">能力</span></a>
     <a href="#benchmark">Benchmark <span class="zh">实测</span></a>
     <a href="#ui">UI <span class="zh">界面</span></a>
@@ -199,7 +199,7 @@
 <div class="nav-scrim" id="scrim"></div>
 <main id="top">
   <p class="crumb">Product updates <span style="margin:0 8px;color:#D1D5DB">/</span> <b>2026 年 11 月 · v1.1.0</b></p>
-  <h1>vox<span class="suffix">voice → text, offline, for Omarchy</span></h1>
+  <h1>duckvox<span class="suffix">voice → text, offline, for Omarchy</span></h1>
   <p class="tagline">按住一个键，说出的话直接落在光标处 —— 没有云，没有账号，没有剪贴板中转</p>
   <div class="cta-row">
     <a class="btn-primary" href="https://github.com/pm-parker/vox" target="_blank">
@@ -219,7 +219,7 @@
       依赖一堆私有组件的商用套件。而 Omarchy 用户已经有现成的系统底座 —— Hyprland 的按键绑定、
       <span class="n">wtype</span> 的合成输入、主题化 shell。缺的只是把它们串起来的那块拼图。
       <br><br>
-      vox 就是那块拼图：<b>SenseVoice 完全跑在本机 CPU 上</b>，说话内容不出机器；
+      duckvox 就是那块拼图：<b>SenseVoice 完全跑在本机 CPU 上</b>，说话内容不出机器；
       按住 <span class="n">Alt_R</span> 说话、松开上屏，走的是 Omarchy 自己的听写后端接口 ——
       不是又一个悬浮窗工具，而是系统听写能力的本地方案。
     </p>
@@ -257,7 +257,7 @@
       <div class="cap">
         <div class="idx">05 · HID</div>
         <h3>常驻守护 + 状态面板</h3>
-        <p><span class="n">vox --minimized</span> 常驻，按键零启动开销；Omarchy bar 上的麦克风图标
+        <p><span class="n">duckvox --minimized</span> 常驻，按键零启动开销；Omarchy bar 上的麦克风图标
            三态着色（空闲/监听/转写），面板里看最近转写、一键复制重发。</p>
       </div>
       <div class="cap">
@@ -268,7 +268,7 @@
       </div>
     </div>
     <div class="master-note">
-      <b>系统听写后端：</b>vox 注册为 Omarchy 听写后端之一 —— <span class="n">omarchy dictation use vox</span>
+      <b>系统听写后端：</b>duckvox 注册为 Omarchy 听写后端之一 —— <span class="n">omarchy dictation use duckvox</span>
       一条命令接管系统的 Alt_R / Alt+Space 绑定。切回 superwhisper 或 voxtype 也只是同一条命令换个名字，
       键位、bar、习惯全部保留。
     </div>
@@ -287,7 +287,7 @@
       <tr><td>识别延迟（热）</td><td class="hl">2.6–2.8 s</td><td>5.59 s 语音，松手到出字。含进程冷启动 —— 常驻守护下模型常驻内存，感知更快</td></tr>
       <tr><td>过程级 RTF</td><td class="hl">≈ 0.48</td><td>处理 1 秒语音约耗 0.48 秒，快于实时；边说边算，出字更快</td></tr>
       <tr><td>识别进程峰值内存</td><td class="dim">≈ 370 MB</td><td>int8 SenseVoice 载入后稳态更低，支持页面切换无感</td></tr>
-      <tr><td>模型下载</td><td class="dim">163 MB</td><td>int8 导出（约 230 MB 解包），一次性；fp32 版 1 GB，vox 不用也 不下载</td></tr>
+      <tr><td>模型下载</td><td class="dim">163 MB</td><td>int8 导出（约 230 MB 解包），一次性；fp32 版 1 GB，duckvox 不用也 不下载</td></tr>
       <tr><td>二进制体积</td><td class="dim">≈ 1.6 MB</td><td>Qt Quick 单二进制（依赖系统 Qt6）；sherpa-onnx 静态构建另占 36 MB</td></tr>
     </table></div>
     <div class="master-note">
@@ -302,7 +302,7 @@
     <h2>4. 界面</h2>
     <hr class="rule">
     <div class="shot">
-      <figure class="frame"><img src="assets/idle.png" alt="vox 空闲"><figcaption>空闲</figcaption></figure>
+      <figure class="frame"><img src="assets/idle.png" alt="duckvox 空闲"><figcaption>空闲</figcaption></figure>
       <figure class="frame"><img src="assets/listening.png" alt="监听中"><figcaption>监听中</figcaption></figure>
       <figure class="frame"><img src="assets/processing.png" alt="转写中"><figcaption>转写中</figcaption></figure>
       <figure class="frame"><img src="assets/transcribed.png" alt="完成"><figcaption>完成</figcaption></figure>
@@ -314,14 +314,14 @@
   <section id="install">
     <h2>5. 快速开始</h2>
     <hr class="rule">
-    <p class="lead">Arch / Omarchy 下三条命令；装完 vox 会出现在应用启动器里：</p>
+    <p class="lead">Arch / Omarchy 下三条命令；装完 duckvox 会出现在应用启动器里：</p>
 <pre><span class="c"># 仓库内构建并安装为 Arch 包</span>
-git clone https://github.com/pm-parker/vox.git && cd vox
+git clone https://github.com/pm-parker/vox.git && cd duckvox
 bin/install
 <span class="c"># 接管系统听写键位（Alt_R 按住说话 / Alt+Space 切换）</span>
-omarchy dictation use vox
+omarchy dictation use duckvox
 <span class="c"># 首次运行：按 M 下载模型（163 MB，一次性），之后随叫随到</span>
-vox</pre>
+duckvox</pre>
     <p class="lead" style="margin-top:26px">模型自动从上游发布地址下载并校验；bar 面板、主题跟随、五语种识别开箱即用。
     其余发行版需自备 Qt6 / PulseAudio / wtype，构建同样只要 <b>qmake6 && make</b>。</p>
   </section>
@@ -367,13 +367,13 @@ vox</pre>
     for (const d of ['M12 2v2', 'M12 20v2', 'M4.9 4.9l1.4 1.4', 'M17.7 17.7l1.4 1.4', 'M2 12h2', 'M20 12h2', 'M4.9 19.1l1.4-1.4', 'M17.7 6.3l1.4-1.4']) sun.appendChild(mk('path', { d }));
     ic.replaceChildren(dark ? moon : sun);
   }
-  let saved=null; try{ saved=localStorage.getItem('vox-theme'); }catch(e){}
+  let saved=null; try{ saved=localStorage.getItem('duckvox-theme'); }catch(e){}
   applyTheme(saved);
   TB.addEventListener('click', ()=>{
     const cur = document.documentElement.getAttribute('data-theme')
       || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
     const next = cur==='dark' ? 'light' : 'dark';
-    try{ localStorage.setItem('vox-theme', next); }catch(e){}
+    try{ localStorage.setItem('duckvox-theme', next); }catch(e){}
     applyTheme(next);
   });
   // 点阵麦克风 hero —— 图形栅格化采样为圆点, 颜色随深度渐隐 (与 netsteer 同手法)

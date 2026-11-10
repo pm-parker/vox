@@ -5,7 +5,7 @@
 #include <QTimer>
 
 // The daemon's public face for the Omarchy bar panel: a tiny JSON snapshot
-// written atomically to ~/.local/state/vox/status.json on every state change.
+// written atomically to ~/.local/state/duckvox/status.json on every state change.
 // The panel polls it like Superwhisper's bar item polls its tray frames —
 // no IPC, no socket lifetime questions, one well-known file. Level writes
 // are throttled so a loud room doesn't spin the disk; state changes flush

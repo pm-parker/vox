@@ -1,0 +1,22 @@
+#!/bin/bash
+
+# omarchy:summary=Remove duckvox dictation and its desktop integration
+# omarchy:requires-sudo=true
+
+set -e
+
+# Unhook from Omarchy: stop the daemon, disable the bar panel, uninstall the
+# package (models under ~/.local/share/duckvox are kept for a future reinstall).
+pkill -x duckvox 2>/dev/null || true
+omarchy-shell -q shell setPluginEnabled duckvox.panel false >/dev/null
+omarchy-pkg-drop duckvox
+
+# omarchy-dictation-use would refuse to switch to a backend whose adapter is
+# gone, so clear the selection directly when it pointed at duckvox.
+config="${XDG_CONFIG_HOME:-$HOME/.config}/omarchy/defaults/dictation"
+if [[ -f $config && $(< "$config") == "duckvox" ]]; then
+  rm "$config"
+fi
+
+omarchy-shell -q shell rescanPlugins
+omarchy-restart-hyprctl

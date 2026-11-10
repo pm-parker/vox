@@ -12,7 +12,7 @@
 namespace {
 QString socketPath() {
     const QString runtime = QStandardPaths::writableLocation(QStandardPaths::RuntimeLocation);
-    return runtime + "/vox/control.sock";
+    return runtime + "/duckvox/control.sock";
 }
 } // namespace
 
@@ -52,13 +52,13 @@ bool ControlServer::listen() {
     probe.connectToServer(path);
     if (probe.waitForConnected(200)) {
         probe.disconnectFromServer();
-        qWarning() << "vox: another daemon owns the control socket";
+        qWarning() << "duckvox: another daemon owns the control socket";
         return false;
     }
     QFile::remove(path);
-    QDir().mkpath(QStandardPaths::writableLocation(QStandardPaths::RuntimeLocation) + "/vox");
+    QDir().mkpath(QStandardPaths::writableLocation(QStandardPaths::RuntimeLocation) + "/duckvox");
     if (!m_server.listen(path)) {
-        qWarning() << "vox: control socket unavailable:" << m_server.errorString();
+        qWarning() << "duckvox: control socket unavailable:" << m_server.errorString();
         return false;
     }
     return true;

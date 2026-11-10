@@ -1,13 +1,13 @@
 [Desktop Entry]
 Type=Application
-Name=vox
-Name[zh_CN]=vox 语音输入
+Name=duckvox
+Name[zh_CN]=duckvox 语音输入
 GenericName=Voice input
 Comment=Dictate text into any window with SenseVoice, fully offline
 Comment[zh_CN]=用 SenseVoice 向任意窗口语音输入文字，完全离线
-Exec=vox
+Exec=duckvox
 Terminal=false
 Categories=Utility;Accessibility;
 Keywords=voice;dictation;speech;input;stt;asr;microphone;语音;输入;
-Icon=vox
-StartupWMClass=vox
+Icon=duckvox
+StartupWMClass=duckvox

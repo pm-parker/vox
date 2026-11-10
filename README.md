@@ -1,6 +1,6 @@
 <div align="center">
 
-# vox
+# duckvox
 
 **Offline voice input for Omarchy — press a key, speak, and your words land in the focused window.**
 
@@ -11,7 +11,7 @@ No cloud, no accounts, no clipboard manager. SenseVoice runs on your CPU.
 </div>
 
 <p align="center">
-  <img src="docs/assets/idle.png" width="215" alt="vox idle">
+  <img src="docs/assets/idle.png" width="215" alt="duckvox idle">
   <img src="docs/assets/listening.png" width="215" alt="listening">
   <img src="docs/assets/processing.png" width="215" alt="transcribing">
   <img src="docs/assets/transcribed.png" width="215" alt="transcribed">
@@ -25,7 +25,7 @@ No cloud, no accounts, no clipboard manager. SenseVoice runs on your CPU.
 
 ## What it is
 
-vox is a native Omarchy desktop app (C++ / Qt Quick) that turns speech into text
+duckvox is a native Omarchy desktop app (C++ / Qt Quick) that turns speech into text
 in whatever window has focus. It began as a rebuild of
 [crostivoice](https://github.com/david-heinemeier-hansson/crostivoice) — a
 ChromeOS extension for the same job — reimagined as a Wayland/Hyprland citizen
@@ -38,12 +38,12 @@ What it gets you:
   Nothing leaves the machine.
 - **Global push-to-talk.** Hold `Alt_R` to talk, release to insert. `Alt+Space`
   toggles tap-to-dictate. Wired through Omarchy's own dictation backend system,
-  so the keybindings are the system's, not vox's.
+  so the keybindings are the system's, not duckvox's.
 - **Types into the focused window.** `wtype` on Wayland, with `wl-copy` as the
   fallback so the text is never lost.
 - **Follows your theme.** Accent color and corner radius come from the live
   Omarchy theme (`omarchy-theme` and Hyprland's effective rounding). Change the
-  theme and vox changes with it — no restart.
+  theme and duckvox changes with it — no restart.
 - **Speaks your language.** The UI follows Omarchy's chosen language; English
   and Chinese catalogs ship in the box.
 - **Bar panel.** A microphone icon in the Omarchy bar shows idle / listening /
@@ -53,17 +53,17 @@ What it gets you:
 
 ```sh
 bin/install          # builds an Arch package and installs it
-omarchy dictation use vox   # make vox the dictation backend (Alt_R / Alt+Space)
-vox                  # open the window; press M once to fetch the model
+omarchy dictation use duckvox   # make duckvox the dictation backend (Alt_R / Alt+Space)
+duckvox                  # open the window; press M once to fetch the model
 ```
 
 Omarchy's built-in `omarchy install dictation` targets Superwhisper and Voxtype;
-vox plugs into the same backend system, so `omarchy dictation use vox` is all it
+duckvox plugs into the same backend system, so `omarchy dictation use duckvox` is all it
 takes to become the active backend — and `omarchy dictation start|stop|toggle`
 then drives it.
 
 The model is a one-time ~163 MB download on first run (~230 MB on disk after
-extraction), stored under `~/.local/share/vox/models`. **No model, no problem:**
+extraction), stored under `~/.local/share/duckvox/models`. **No model, no problem:**
 the app opens, tells you the model is missing, and dictation starts working the
 moment you install it — the rest of the app (history, settings, dictionary)
 works from the first launch.
@@ -72,7 +72,7 @@ works from the first launch.
 
 ```
      Alt_R held                    audio                    text
-  keybind ──▶ omarchy-dictation ──▶ vox ──▶ parec ──▶ VAD ──▶ wav
+  keybind ──▶ omarchy-dictation ──▶ duckvox ──▶ parec ──▶ VAD ──▶ wav
                                          └──▶ sherpa-onnx (SenseVoice)
                                               └──▶ TextPipeline ──▶ wtype
 ```
@@ -86,7 +86,7 @@ The pieces, and why each is shaped the way it is:
 | `src/textpipeline.cpp` | Applies the hot-word dictionary longest-first, then punctuation style (full-width `，。` or half-width `, .`). |
 | `src/inserter.cpp` | Types the text with `wtype -s 1000` (slow enough for apps to keep up), falls back to `wl-copy`. |
 | `src/backend.cpp` | The state machine the UI binds to: idle → listening → processing → done, plus history and errors. |
-| `src/controlserver.cpp` | A small newline-JSON socket, so `vox --hold-start` reaches the already-running daemon. |
+| `src/controlserver.cpp` | A small newline-JSON socket, so `duckvox --hold-start` reaches the already-running daemon. |
 | `src/theme.cpp` | Reads the Omarchy theme directory and Hyprland rounding, re-reading on change. |
 
 Two design decisions worth calling out:
@@ -95,12 +95,12 @@ Two design decisions worth calling out:
   pause; a *held* take must not, or a long sentence gets cut in half. So
   `holdStart()` captures with auto-stop disabled and ends on release instead.
 - **The daemon owns the microphone.** A keypress must not pay for process
-  startup or model load, so `vox --minimized` runs a socket-owning daemon and the
+  startup or model load, so `duckvox --minimized` runs a socket-owning daemon and the
   CLI is a thin client that knocks on it.
 
 ## Global hotkeys
 
-Installed, vox registers itself as an Omarchy dictation backend, which gives you
+Installed, duckvox registers itself as an Omarchy dictation backend, which gives you
 the system bindings:
 
 | Key | Action |
@@ -114,7 +114,7 @@ Omarchy's keys are.
 
 ## Omarchy bar panel
 
-The panel lives at `~/.config/omarchy/plugins/vox-panel/` and is registered in
+The panel lives at `~/.config/omarchy/plugins/duckvox-panel/` and is registered in
 `~/.config/omarchy/shell.json`. The bar icon is drawn as a vector microphone and
 recolors with the theme: dim when idle, urgent while listening, pulsing while
 transcribing. Clicking it opens a panel with the status line, the most recent
@@ -122,7 +122,7 @@ transcript, and quick actions.
 
 ## Keys
 
-In the vox window:
+In the duckvox window:
 
 | Key | Action |
 | --- | --- |
@@ -146,7 +146,7 @@ Everything is set from the window — no config files to hand-edit:
 | Resume after silence | 0.4 – 3.0 s | How much silence ends a take |
 | Hot-word dictionary | editable list | Longest-first text replacement after recognition |
 
-Settings persist as JSON at `~/.local/share/vox/settings.json` and apply to
+Settings persist as JSON at `~/.local/share/duckvox/settings.json` and apply to
 the running daemon immediately.
 
 ## Command line
@@ -156,16 +156,16 @@ of it, and is what the Omarchy adapter drives.
 
 | Command | Effect |
 | --- | --- |
-| `vox --status` | Print the daemon's state and exit non-zero if it is not running |
-| `vox --toggle` | Start / stop tap-to-dictate |
-| `vox --hold-start` / `--hold-stop` | Push-to-talk begin / end |
-| `vox --copy-last` | Copy the last transcript |
-| `vox --show` / `--minimized` | Show the window / run windowless as the daemon |
+| `duckvox --status` | Print the daemon's state and exit non-zero if it is not running |
+| `duckvox --toggle` | Start / stop tap-to-dictate |
+| `duckvox --hold-start` / `--hold-stop` | Push-to-talk begin / end |
+| `duckvox --copy-last` | Copy the last transcript |
+| `duckvox --show` / `--minimized` | Show the window / run windowless as the daemon |
 
 ## Building from source
 
 ```sh
-bin/build     # debug build, binary at build/vox
+bin/build     # debug build, binary at build/duckvox
 bin/test      # 12 unit tests
 bin/install   # Arch package + install, so it appears in the launcher
 ```
@@ -178,9 +178,9 @@ first run.
 Recognition notes, for anyone comparing against other SenseVoice builds:
 
 - The model is the **int8-only** export. The full-precision tarball is 1 GB
-  because it also carries a 895 MB fp32 model vox never loads.
+  because it also carries a 895 MB fp32 model duckvox never loads.
 - The 2.x CLI renamed its flags to `--sense-voice-use-itn` and
-  `--sense-voice-language`; vox uses those, and its output is now one JSON
+  `--sense-voice-language`; duckvox uses those, and its output is now one JSON
   object per file rather than a `Recognized text:` line.
 - The model tarball contains **no** binary, which is why the package ships
   `sherpa-onnx-offline` separately instead of downloading it at first run.

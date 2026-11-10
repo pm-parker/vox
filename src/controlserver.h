@@ -6,9 +6,9 @@
 
 class Backend;
 
-// Single-instance control socket: a second `vox` (or any script) sends one
+// Single-instance control socket: a second `duckvox` (or any script) sends one
 // JSON command per line — hold-start, hold-stop, toggle, status — and reads
-// one JSON line back. The socket lives at $XDG_RUNTIME_DIR/vox/control.sock
+// one JSON line back. The socket lives at $XDG_RUNTIME_DIR/duckvox/control.sock
 // and is removed on shutdown, so the Omarchy dictation adapter never has to
 // guess whether the GUI is up: a client that finds no socket starts the app.
 class ControlServer : public QObject {

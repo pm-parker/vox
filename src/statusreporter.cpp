@@ -10,8 +10,8 @@
 
 StatusReporter::StatusReporter(QObject *parent) : QObject(parent) {
     const QString stateDir = QStandardPaths::writableLocation(QStandardPaths::GenericStateLocation);
-    m_path = stateDir + "/vox/status.json";
-    QDir().mkpath(stateDir + "/vox");
+    m_path = stateDir + "/duckvox/status.json";
+    QDir().mkpath(stateDir + "/duckvox");
     m_levelThrottle.setInterval(200);
     m_levelThrottle.setSingleShot(true);
     connect(&m_levelThrottle, &QTimer::timeout, this, &StatusReporter::flush);

@@ -9,9 +9,9 @@
 // The recognition engine: SenseVoice (zh/en/ja/ko/yue) run through the
 // official sherpa-onnx-offline binary, downloaded once on explicit request
 // (~230 MB with byte-accurate progress) and cached under
-// ~/.local/share/vox/models. SenseVoice punctuates and inverse-normalizes
+// ~/.local/share/duckvox/models. SenseVoice punctuates and inverse-normalizes
 // numbers natively, so one model replaces crostivoice's browser ASR *and*
-// its separate punctuation model. Without the model vox still works — the
+// its separate punctuation model. Without the model duckvox still works — the
 // user sees the state and the rule pipeline polishes whatever text exists.
 // Homophone correction (macbert4csc) is roadmap: the stock binary cannot run
 // it, and shipping dead UI for it would lie.

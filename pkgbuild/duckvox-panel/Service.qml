@@ -2,13 +2,13 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 
-// Client for the vox daemon's control socket by way of its CLI: every reply
-// is one JSON line from `vox --status`. Holds no knowledge of vox internals —
+// Client for the duckvox daemon's control socket by way of its CLI: every reply
+// is one JSON line from `duckvox --status`. Holds no knowledge of vox internals —
 // if the daemon renames a field, this file is the only thing to touch.
 QtObject {
   id: root
 
-  readonly property string cli: "vox"
+  readonly property string cli: "duckvox"
   // idle | listening | processing — "" when the daemon is not running.
   property string state: ""
   property string lastText: ""
@@ -47,7 +47,7 @@ QtObject {
   }
 
   function readReply(text) {
-    // "vox is not running" prints to stderr and exits 1 — no JSON to read.
+    // "duckvox is not running" prints to stderr and exits 1 — no JSON to read.
     if (!text || text.trim() === "")
       return
     try {

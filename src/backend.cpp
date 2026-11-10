@@ -190,7 +190,7 @@ void Backend::setAutostart(bool on) { m_store->setAutostart(on); }
 QJsonObject Backend::shortcuts() const { return m_store->shortcuts(); }
 
 // Persisting the keys applies them right away (the script unbinds the old
-// pair, regenerates ~/.config/vox/shortcuts.lua and reloads). At login the
+// pair, regenerates ~/.config/duckvox/shortcuts.lua and reloads). At login the
 // binds come back on their own: dictation-backend.lua dofiles that file.
 void Backend::setShortcuts(const QJsonObject &keys) {
     m_store->setShortcuts(keys);
@@ -198,21 +198,21 @@ void Backend::setShortcuts(const QJsonObject &keys) {
 }
 
 // Regenerate the shortcut binds: the packaged script re-reads the saved
-// keys, rewrites ~/.config/vox/shortcuts.lua (unbinding the previous pair
+// keys, rewrites ~/.config/duckvox/shortcuts.lua (unbinding the previous pair
 // first) and reloads the Hyprland config. Detached so a daemon exit never
 // truncates the reload.
-void Backend::applyShortcuts() { QProcess::startDetached("omarchy-dictation-vox-keys", {}); }
+void Backend::applyShortcuts() { QProcess::startDetached("omarchy-dictation-duckvox-keys", {}); }
 
 void Backend::resetShortcuts() {
     QJsonObject defaults;
     defaults.insert("toggleKey", "ALT + SPACE");
     defaults.insert("pttKey", "ALT + Alt_R");
     m_store->setShortcuts(defaults);
-    QProcess::startDetached("omarchy-dictation-vox-keys", {"--reset"});
+    QProcess::startDetached("omarchy-dictation-duckvox-keys", {"--reset"});
 }
 
 // Keep ~/.config/hypr/autostart.lua in step with the setting. Omarchy ships
-// the default with its own "-- vox:" guard comment, so on means replacing
+// the default with its own "-- duckvox:" guard comment, so on means replacing
 // that comment with the real launch line, off means restoring it; on a file
 // without either (user rewrote it), on appends our line once.
 void Backend::applyAutostart() {
@@ -222,8 +222,8 @@ void Backend::applyAutostart() {
         return;
     QString text = QString::fromUtf8(file.readAll());
     file.close();
-    const QString launchLine = "o.launch_on_start(\"vox --minimized\")";
-    const QString guardLine = "-- vox: disabled — toggle it back on in the vox window";
+    const QString launchLine = "o.launch_on_start(\"duckvox --minimized\")";
+    const QString guardLine = "-- duckvox: disabled — toggle it back on in the duckvox window";
     const bool wanted = m_store->autostart();
     const bool listed = text.contains(launchLine);
     const bool guarded = text.contains(guardLine);
@@ -231,12 +231,12 @@ void Backend::applyAutostart() {
         return;
     if (wanted && !listed) {
         if (guarded)
-            text.replace(guardLine, launchLine + " -- vox: start at login");
+            text.replace(guardLine, launchLine + " -- duckvox: start at login");
         else
             text += (text.endsWith('\n') ? QString() : QStringLiteral("\n"))
-                    + launchLine + " -- vox: start at login\n";
+                    + launchLine + " -- duckvox: start at login\n";
     } else if (listed) {
-        text.replace(launchLine + " -- vox: start at login", guardLine);
+        text.replace(launchLine + " -- duckvox: start at login", guardLine);
         // Older installs wrote the line bare; still swap it.
         text.replace(launchLine, guardLine);
     }

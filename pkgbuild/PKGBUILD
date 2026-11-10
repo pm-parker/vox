@@ -1,6 +1,6 @@
-pkgname=vox
-pkgver=1.3.0
-pkgrel=5
+pkgname=duckvox
+pkgver=2.0.0
+pkgrel=1
 pkgdesc='Voice input for Omarchy — offline dictation into any window'
 arch=('x86_64' 'aarch64')
 license=('MIT')
@@ -24,26 +24,26 @@ build() {
 
 package() {
   cd "$startdir/.."
-  install -Dm755 build/vox "$pkgdir/usr/bin/vox"
+  install -Dm755 build/duckvox "$pkgdir/usr/bin/duckvox"
   install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
-  install -Dm644 "$startdir/vox.svg" "$pkgdir/usr/share/icons/hicolor/scalable/apps/vox.svg"
-  install -Dm644 "$startdir/vox.desktop" "$pkgdir/usr/share/applications/vox.desktop"
-  # Official Omarchy dictation adapter: `omarchy dictation use vox` wires
+  install -Dm644 "$startdir/duckvox.svg" "$pkgdir/usr/share/icons/hicolor/scalable/apps/duckvox.svg"
+  install -Dm644 "$startdir/duckvox.desktop" "$pkgdir/usr/share/applications/duckvox.desktop"
+  # Official Omarchy dictation adapter: `omarchy dictation use duckvox` wires
   # Alt+Space toggle and hold-Alt_R push-to-talk to this binary.
-  install -Dm755 "$startdir/omarchy-dictation-vox" "$pkgdir/usr/bin/omarchy-dictation-vox"
-  # Reloads the user-tunable hotkeys written by the vox Shortcuts card
-  # (~/.config/vox/shortcuts.lua, loaded by dictation-backend.lua).
-  install -Dm755 "$startdir/omarchy-dictation-vox-keys" "$pkgdir/usr/bin/omarchy-dictation-vox-keys"
-  # Setup-menu install/remove hooks: omarchy default dictation vox requires
-  # omarchy-install-dictation-vox to exist, and remove-dictation pairs with it.
-  install -Dm755 "$startdir/omarchy-install-dictation-vox" "$pkgdir/usr/bin/omarchy-install-dictation-vox"
-  install -Dm755 "$startdir/omarchy-remove-dictation-vox" "$pkgdir/usr/bin/omarchy-remove-dictation-vox"
+  install -Dm755 "$startdir/omarchy-dictation-duckvox" "$pkgdir/usr/bin/omarchy-dictation-duckvox"
+  # Reloads the user-tunable hotkeys written by the duckvox Shortcuts card
+  # (~/.config/duckvox/shortcuts.lua, loaded by dictation-backend.lua).
+  install -Dm755 "$startdir/omarchy-dictation-duckvox-keys" "$pkgdir/usr/bin/omarchy-dictation-duckvox-keys"
+  # Setup-menu install/remove hooks: omarchy default dictation duckvox requires
+  # omarchy-install-dictation-duckvox to exist, and remove-dictation pairs with it.
+  install -Dm755 "$startdir/omarchy-install-dictation-duckvox" "$pkgdir/usr/bin/omarchy-install-dictation-duckvox"
+  install -Dm755 "$startdir/omarchy-remove-dictation-duckvox" "$pkgdir/usr/bin/omarchy-remove-dictation-duckvox"
   # Omarchy bar panel: shipped canonical, synced into the user's plugins dir
-  # by omarchy-install-dictation-vox (the shell only loads user-dir plugins).
-  install -d "$pkgdir/usr/share/vox/panel"
-  install -Dm644 "$startdir/vox-panel/Panel.qml" "$pkgdir/usr/share/vox/panel/Panel.qml"
-  install -Dm644 "$startdir/vox-panel/Service.qml" "$pkgdir/usr/share/vox/panel/Service.qml"
-  install -Dm644 "$startdir/vox-panel/manifest.json" "$pkgdir/usr/share/vox/panel/manifest.json"
+  # by omarchy-install-dictation-duckvox (the shell only loads user-dir plugins).
+  install -d "$pkgdir/usr/share/duckvox/panel"
+  install -Dm644 "$startdir/duckvox-panel/Panel.qml" "$pkgdir/usr/share/duckvox/panel/Panel.qml"
+  install -Dm644 "$startdir/duckvox-panel/Service.qml" "$pkgdir/usr/share/duckvox/panel/Service.qml"
+  install -Dm644 "$startdir/duckvox-panel/manifest.json" "$pkgdir/usr/share/duckvox/panel/manifest.json"
   # sherpa-onnx-offline, pulled out of the upstream static release.
   local bin
   bin=$(find "$srcdir" -type f -name sherpa-onnx-offline -perm -u+x | head -1)

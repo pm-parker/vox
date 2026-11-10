@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- DuckVox tray glyph: duck head only, no badge -->
+  <circle cx="28" cy="31" r="20" fill="#FFD338"/>
+  <rect x="42" y="29" width="19" height="9.5" rx="4.75" fill="#FF8C1A"/>
+  <circle cx="33" cy="24" r="3.4" fill="#1A1A1A"/>
+</svg>

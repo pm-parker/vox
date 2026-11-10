@@ -1,0 +1,20 @@
+# clangd fallback flags — mirrors the qmake build exactly (see `make -n`),
+# plus src/ so the standalone dev tool tools/screenshot_window.cpp (not in
+# SOURCES) resolves its ../src headers. qmake entries take precedence when a
+# compile_commands.json exists; files without one use this.
+-std=gnu++17
+-D_REENTRANT
+-DQT_NO_DEBUG
+-I.
+-Isrc
+-Itools
+-I/usr/include/qt6
+-I/usr/include/qt6/QtQuick
+-I/usr/include/qt6/QtOpenGL
+-I/usr/include/qt6/QtWidgets
+-I/usr/include/qt6/QtSvg
+-I/usr/include/qt6/QtGui
+-I/usr/include/qt6/QtQml
+-I/usr/include/qt6/QtQmlIntegration
+-I/usr/include/qt6/QtNetwork
+-I/usr/include/qt6/QtCore

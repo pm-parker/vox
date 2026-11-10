@@ -75,10 +75,17 @@ QString Theme::readAccent(const QString &path) {
 
 // Black or white, whichever reads on the accent (WCAG relative luminance).
 QString Theme::accentForeground() const {
-    const QColor c(m_accent);
+    const QColor c(accent());
     auto linear = [](double v) { return v <= .04045 ? v / 12.92 : std::pow((v + .055) / 1.055, 2.4); };
     const double luminance = .2126 * linear(c.redF()) + .7152 * linear(c.greenF()) + .0722 * linear(c.blueF());
     return luminance > .179 ? "black" : "white";
+}
+
+void Theme::setDuckYellow(bool on) {
+    if (m_duckYellow == on)
+        return;
+    m_duckYellow = on;
+    emit changed();
 }
 
 void Theme::reload() {

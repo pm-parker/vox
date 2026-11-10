@@ -39,5 +39,8 @@
   "Not installed": "未安装",
   "Retry download": "重试下载",
   "Download model (~230 MB, once)": "下载模型（约 230 MB，仅一次）",
-  "Remove model": "删除模型"
+  "Remove model": "删除模型",
+  "Appearance": "外观",
+  "Duck yellow accent": "鸭黄主题色",
+  "Follow the Omarchy theme": "关闭后跟随 Omarchy 主题色"
 }
