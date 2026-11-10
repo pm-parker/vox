@@ -3,17 +3,22 @@
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
+#include <QJsonDocument>
+#include <QJsonObject>
 #include <QStandardPaths>
 #include <QThread>
 
 namespace {
-// HEAD-checked reachable from this machine. The same tarball carries the
-// model, tokens, and the static sherpa-onnx-offline binary for this arch.
+// Model archive: the int8-only export. The full-precision tarball is 1 GB
+// because it also carries a 895 MB fp32 model we would never load.
+// The archive holds model.int8.onnx and tokens.txt flat at its root.
+// The recognition binary is NOT in it — the Arch package ships
+// sherpa-onnx-offline separately, and a system copy works just as well.
 const char kArchiveUrl[] =
     "https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/"
-    "sherpa-onnx-sense-voice-zh-en-ja-ko-yue-2024-07-17.tar.bz2";
-const char kDirName[] = "sherpa-onnx-sense-voice-zh-en-ja-ko-yue-2024-07-17";
-constexpr qint64 kArchiveBytes = 243'000'000; // approximate, for progress only
+    "sherpa-onnx-sense-voice-zh-en-ja-ko-yue-int8-2024-07-17.tar.bz2";
+const char kDirName[] = "sherpa-onnx-sense-voice-zh-en-ja-ko-yue-int8-2024-07-17";
+constexpr qint64 kArchiveBytes = 163'000'000; // approximate, for progress only
 } // namespace
 
 Engine::Engine(const QString &modelsDirectory, QObject *parent)
@@ -99,9 +104,9 @@ Engine::~Engine() {
 }
 
 QString Engine::findBin(const QString &modelsDirectory) {
-    // The binary ships inside the model tarball (static, matches the arch it
-    // was downloaded on); a system sherpa-onnx-offline is a fine substitute.
-    const QString bundled = modelsDirectory + "/" + kDirName + "/bin/sherpa-onnx-offline";
+    // The package installs sherpa-onnx-offline into /usr/bin; a copy dropped
+    // next to the models wins so a hand-placed build can be tested first.
+    const QString bundled = modelsDirectory + "/sherpa-onnx-offline";
     if (QFileInfo(bundled).isExecutable())
         return bundled;
     const QString system = QStandardPaths::findExecutable("sherpa-onnx-offline");
@@ -118,7 +123,7 @@ void Engine::setPhase(const QString &phase) {
 void Engine::refresh() {
     if (m_downloading)
         return;
-    const bool ready = QFileInfo::exists(m_dir + "/" + kDirName + "/int8-onnx/model.int8.onnx")
+    const bool ready = QFileInfo::exists(m_dir + "/" + kDirName + "/model.int8.onnx")
                        && !findBin(m_dir).isEmpty();
     if (ready || m_phase == "error")
         m_error.clear();
@@ -183,7 +188,7 @@ void Engine::finishDownload() {
     m_progress = 100;
     m_bin = findBin(m_dir);
     const bool ok = !m_bin.isEmpty()
-                    && QFileInfo::exists(m_dir + "/" + kDirName + "/int8-onnx/model.int8.onnx");
+                    && QFileInfo::exists(m_dir + "/" + kDirName + "/model.int8.onnx");
     if (!ok) {
         m_error = tr("The model archive did not contain what vox expected.");
         setPhase("error");
@@ -199,27 +204,37 @@ void Engine::remove() {
     refresh();
 }
 
-// The CLI echoes the input filename before each result and prefixes the text
-// with "Recognized text:" on some builds; be liberal in what we accept, and
-// drop the echo lines rather than trusting a fixed line offset.
+// sherpa-onnx 2.x prints one JSON object per file ("text" holds the
+// transcript) and dumps its whole config to stderr; older builds print a
+// plain "Recognized text:" line. Only those two forms are transcript —
+// everything else on the stream is log chatter and must never reach the
+// text pipeline, which would happily "punctuate" it.
 QString Engine::parseOutput(const QByteArray &raw) {
     const QStringList lines = QString::fromUtf8(raw).split('\n', Qt::SkipEmptyParts);
-    QStringList kept;
+    QStringList jsonTexts;
+    QStringList prefixed;
     for (QString line : lines) {
         line = line.trimmed();
-        if (line.endsWith(".wav", Qt::CaseInsensitive))
+        if (line.startsWith('{')) {
+            const QJsonObject object = QJsonDocument::fromJson(line.toUtf8()).object();
+            const QString text = object.value("text").toString().trimmed();
+            if (!text.isEmpty())
+                jsonTexts.append(text);
             continue;
+        }
         for (const char *prefix : {"Recognized text:", "Text:"}) {
             const QString head = QString::fromLatin1(prefix);
             if (line.startsWith(head, Qt::CaseInsensitive)) {
-                line = line.mid(head.size()).trimmed();
+                const QString text = line.mid(head.size()).trimmed();
+                if (!text.isEmpty())
+                    prefixed.append(text);
                 break;
             }
         }
-        if (!line.isEmpty())
-            kept.append(line);
     }
-    return kept.join(' ').trimmed();
+    if (!jsonTexts.isEmpty())
+        return jsonTexts.join(' ').trimmed();
+    return prefixed.join(' ').trimmed();
 }
 
 void Engine::transcribe(const QString &wavPath, const QString &language) {
@@ -230,11 +245,14 @@ void Engine::transcribe(const QString &wavPath, const QString &language) {
     if (m_busy)
         return;
     const QString root = m_dir + "/" + kDirName;
+    // Flag names follow the 2.x CLI: --sense-voice-use-itn and
+    // --sense-voice-language (the bare --use-itn/--language of older builds
+    // are rejected with "Invalid option").
     QStringList args{
-        "--sense-voice-model=" + root + "/int8-onnx/model.int8.onnx",
+        "--sense-voice-model=" + root + "/model.int8.onnx",
         "--tokens=" + root + "/tokens.txt",
-        "--use-itn=1",           // SenseVoice punctuates and normalizes numbers
-        "--language=" + (language.isEmpty() ? QStringLiteral("auto") : language),
+        "--sense-voice-use-itn=true", // SenseVoice punctuates and normalizes numbers
+        "--sense-voice-language=" + (language.isEmpty() ? QStringLiteral("auto") : language),
         "--num-threads=" + QString::number(qMax(1, QThread::idealThreadCount() - 1)),
         wavPath,
     };

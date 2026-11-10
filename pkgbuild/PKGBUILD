@@ -6,8 +6,16 @@ arch=('x86_64' 'aarch64')
 license=('MIT')
 depends=('qt6-base' 'qt6-declarative' 'qt6-wayland' 'libpulse' 'wtype' 'wl-clipboard' 'curl')
 makedepends=('gcc' 'make')
-source=()
-sha256sums=()
+# The recognition binary ships with the package: the SenseVoice model tarball
+# on Hugging Face does not contain one, and a 35 MB static build here saves
+# every user a second download (and a toolchain) at first run.
+_sherpa_ver=2.0.1
+_sherpa_x64="https://github.com/k2-fsa/sherpa-onnx/releases/download/v$_sherpa_ver/sherpa-onnx-v$_sherpa_ver-linux-x64-static.tar.bz2"
+_sherpa_arm64="https://github.com/k2-fsa/sherpa-onnx/releases/download/v$_sherpa_ver/sherpa-onnx-v$_sherpa_ver-linux-aarch64-static.tar.bz2"
+source_x86_64=("$_sherpa_x64")
+source_aarch64=("$_sherpa_arm64")
+sha256sums_x86_64=('8b34cf773b65e4be3e7ace12fb6a65fcd8f4e8fe06516ae9b7bcaf405dcb308c')
+sha256sums_aarch64=('SKIP')
 
 build() {
   cd "$startdir/.."
@@ -20,7 +28,11 @@ package() {
   install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
   install -Dm644 "$startdir/vox.svg" "$pkgdir/usr/share/icons/hicolor/scalable/apps/vox.svg"
   install -Dm644 "$startdir/vox.desktop" "$pkgdir/usr/share/applications/vox.desktop"
-  # Official Omarchy dictation adapter: `omarchy default dictation vox` wires
+  # Official Omarchy dictation adapter: `omarchy dictation use vox` wires
   # Alt+Space toggle and hold-Alt_R push-to-talk to this binary.
   install -Dm755 "$startdir/omarchy-dictation-vox" "$pkgdir/usr/bin/omarchy-dictation-vox"
+  # sherpa-onnx-offline, pulled out of the upstream static release.
+  local bin
+  bin=$(find "$srcdir" -type f -name sherpa-onnx-offline -perm -u+x | head -1)
+  install -Dm755 "$bin" "$pkgdir/usr/bin/sherpa-onnx-offline"
 }

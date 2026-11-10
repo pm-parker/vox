@@ -1,59 +1,178 @@
+<div align="center">
+
 # vox
 
-Voice input for Omarchy — press Space, speak, and your words land in whatever
-window has focus. Entirely offline.
+**Offline voice input for Omarchy — press a key, speak, and your words land in the focused window.**
 
-vox is an Omarchy-native desktop app built from the ideas of
-[crostivoice](https://github.com/david-heinemeier-hansson/crostivoice), a
-ChromeOS extension, rebuilt in C++/Qt Quick as a Hyprland/Wayland citizen.
+No cloud, no accounts, no clipboard manager. SenseVoice runs on your CPU.
+
+[Quick start](#quick-start) · [How it works](#how-it-works) · [Global hotkeys](#global-hotkeys) · [Bar panel](#omarchy-bar-panel) · [Build](#building-from-source)
+
+</div>
+
+<p align="center">
+  <img src="assets/idle.png" width="215" alt="vox idle">
+  <img src="assets/listening.png" width="215" alt="listening">
+  <img src="assets/processing.png" width="215" alt="transcribing">
+  <img src="assets/transcribed.png" width="215" alt="transcribed">
+</p>
+
+<p align="center">
+  <sub><b>idle</b> · <b>listening</b> · <b>transcribing</b> · <b>done</b> — real frames from the app, real recognition, real theme colors.</sub>
+</p>
+
+---
+
+## What it is
+
+vox is a native Omarchy desktop app (C++ / Qt Quick) that turns speech into text
+in whatever window has focus. It began as a rebuild of
+[crostivoice](https://github.com/david-heinemeier-hansson/crostivoice) — a
+ChromeOS extension for the same job — reimagined as a Wayland/Hyprland citizen
+with Omarchy's theming, launcher integration and dictation plumbing.
+
+What it gets you:
+
+- **Fully offline dictation.** Recognition is SenseVoice (zh / en / ja / ko / yue)
+  via [sherpa-onnx](https://github.com/k2-fsa/sherpa-onnx), running locally.
+  Nothing leaves the machine.
+- **Global push-to-talk.** Hold `Alt_R` to talk, release to insert. `Alt+Space`
+  toggles tap-to-dictate. Wired through Omarchy's own dictation backend system,
+  so the keybindings are the system's, not vox's.
+- **Types into the focused window.** `wtype` on Wayland, with `wl-copy` as the
+  fallback so the text is never lost.
+- **Follows your theme.** Accent color and corner radius come from the live
+  Omarchy theme (`omarchy-theme` and Hyprland's effective rounding). Change the
+  theme and vox changes with it — no restart.
+- **Speaks your language.** The UI follows Omarchy's chosen language; English
+  and Chinese catalogs ship in the box.
+- **Bar panel.** A microphone icon in the Omarchy bar shows idle / listening /
+  transcribing at a glance and opens a panel with the last transcript.
+
+## Quick start
+
+```sh
+bin/install          # builds an Arch package and installs it
+omarchy dictation use vox   # make vox the dictation backend (Alt_R / Alt+Space)
+vox                  # open the window; press M once to fetch the model
+```
+
+Omarchy's built-in `omarchy install dictation` targets Superwhisper and Voxtype;
+vox plugs into the same backend system, so `omarchy dictation use vox` is all it
+takes to become the active backend — and `omarchy dictation start|stop|toggle`
+then drives it.
+
+The model is a one-time ~163 MB download on first run (~230 MB on disk after
+extraction), stored under `~/.local/share/vox/models`. **No model, no problem:**
+the app opens, tells you the model is missing, and dictation starts working the
+moment you install it — the rest of the app (history, settings, dictionary)
+works from the first launch.
 
 ## How it works
 
-- **Space to dictate** — one big mic button and a keyboard-first window.
-  Space toggles capture, `R` inserts the last take into the focused window
-  (via `wtype`, falling back to `wl-copy`), `C` copies it, `M` downloads the
-  model. All plain text — no clipboard managers, no cloud, no accounts.
-- **SenseVoice, offline** — recognition runs on the local machine through
-  [sherpa-onnx](https://github.com/k2-fsa/sherpa-onnx) with the
-  zh/en/ja/ko/yue SenseVoice model (~230 MB, downloaded once from inside the
-  app; a system `sherpa-onnx-offline` is used if present).
-- **Omarchy look & feel** — the accent color and corner radius follow the
-  live Omarchy theme (`omarchy-theme` output and Hyprland rounding), and the
-  interface language follows Omarchy's chosen language (Chinese and English
-  catalogs ship in the box).
-- **crostivoice niceties, carried over** — silence auto-stop, full-width
-  `，。` or half-width `, .` punctuation, a hot-words dictionary applied
-  longest-first (`gpt four → GPT-4` wins over `four → 4`), auto-insert into
-  the focused window, and a 50-item history you can recall from.
-
-## Install
-
-```sh
-bin/install
+```
+     Alt_R held                    audio                    text
+  keybind ──▶ omarchy-dictation ──▶ vox ──▶ parec ──▶ VAD ──▶ wav
+                                         └──▶ sherpa-onnx (SenseVoice)
+                                              └──▶ TextPipeline ──▶ wtype
 ```
 
-That builds an Arch package and installs it, so `vox` shows up in the Omarchy
-app launcher. First launch: press `M` to fetch the model, then Space to talk.
+The pieces, and why each is shaped the way it is:
 
-For a debug build without installing: `bin/build`, binary at `build/vox`.
-Run the unit tests with `bin/test` (12 cases: store settings/dictionary/
-history, theme fallback + Hyprland rounding, translator catalogs and plurals,
-backend idle safety).
+| Module | Responsibility |
+| --- | --- |
+| `src/recorder.cpp` | Captures raw 16 kHz mono from `parec`, computes RMS over 20 ms windows, and ends a take on trailing silence, at max length, or on release. |
+| `src/engine.cpp` | Owns the SenseVoice model and the `sherpa-onnx-offline` process; parses its JSON result, keeps download progress byte-accurate. |
+| `src/textpipeline.cpp` | Applies the hot-word dictionary longest-first, then punctuation style (full-width `，。` or half-width `, .`). |
+| `src/inserter.cpp` | Types the text with `wtype -s 1000` (slow enough for apps to keep up), falls back to `wl-copy`. |
+| `src/backend.cpp` | The state machine the UI binds to: idle → listening → processing → done, plus history and errors. |
+| `src/controlserver.cpp` | A small newline-JSON socket, so `vox --hold-start` reaches the already-running daemon. |
+| `src/theme.cpp` | Reads the Omarchy theme directory and Hyprland rounding, re-reading on change. |
+
+Two design decisions worth calling out:
+
+- **Push-to-talk ignores the silence gap.** Tap-to-dictate ends a take after a
+  pause; a *held* take must not, or a long sentence gets cut in half. So
+  `holdStart()` captures with auto-stop disabled and ends on release instead.
+- **The daemon owns the microphone.** A keypress must not pay for process
+  startup or model load, so `vox --minimized` runs a socket-owning daemon and the
+  CLI is a thin client that knocks on it.
+
+## Global hotkeys
+
+Installed, vox registers itself as an Omarchy dictation backend, which gives you
+the system bindings:
+
+| Key | Action |
+| --- | --- |
+| `Alt_R` (hold) | Push-to-talk — speak while held, insert on release |
+| `Alt+Space` | Toggle tap-to-dictate |
+
+These come from `/usr/share/omarchy/default/hypr/bindings/dictation.lua`, so they
+work in any application, and they are remappable the same way the rest of
+Omarchy's keys are.
+
+## Omarchy bar panel
+
+The panel lives at `~/.config/omarchy/plugins/vox-panel/` and is registered in
+`~/.config/omarchy/shell.json`. The bar icon is drawn as a vector microphone and
+recolors with the theme: dim when idle, urgent while listening, pulsing while
+transcribing. Clicking it opens a panel with the status line, the most recent
+transcript, and quick actions.
 
 ## Keys
 
+In the vox window:
+
 | Key | Action |
-| --- | ------ |
+| --- | --- |
 | `Space` | Start / stop dictation |
-| `R` | Insert last text into the focused window |
-| `C` | Copy last text |
+| `R` | Insert the last transcript into the focused window |
+| `C` | Copy the last transcript |
 | `M` | Download / retry the speech model |
 
-## Dependencies
+## Command line
 
-`qt6-base` `qt6-declarative` `qt6-wayland` `libpulse` (parec)
-`wtype` `wl-clipboard` `curl` — the model itself (~230 MB) is fetched on
-first run and stored under `~/.local/share/vox/models`.
+The daemon speaks a small newline-JSON protocol; the CLI is the convenient face
+of it, and is what the Omarchy adapter drives.
+
+| Command | Effect |
+| --- | --- |
+| `vox --status` | Print the daemon's state and exit non-zero if it is not running |
+| `vox --toggle` | Start / stop tap-to-dictate |
+| `vox --hold-start` / `--hold-stop` | Push-to-talk begin / end |
+| `vox --copy-last` | Copy the last transcript |
+| `vox --show` / `--minimized` | Show the window / run windowless as the daemon |
+
+## Building from source
+
+```sh
+bin/build     # debug build, binary at build/vox
+bin/test      # 12 unit tests
+bin/install   # Arch package + install, so it appears in the launcher
+```
+
+Dependencies: `qt6-base` `qt6-declarative` `qt6-wayland` `libpulse` (for
+`parec`) `wtype` `wl-clipboard` `curl`. The package also installs
+`sherpa-onnx-offline` (a 35 MB static build); the model is fetched separately on
+first run.
+
+Recognition notes, for anyone comparing against other SenseVoice builds:
+
+- The model is the **int8-only** export. The full-precision tarball is 1 GB
+  because it also carries a 895 MB fp32 model vox never loads.
+- The 2.x CLI renamed its flags to `--sense-voice-use-itn` and
+  `--sense-voice-language`; vox uses those, and its output is now one JSON
+  object per file rather than a `Recognized text:` line.
+- The model tarball contains **no** binary, which is why the package ships
+  `sherpa-onnx-offline` separately instead of downloading it at first run.
+
+### Regenerating the screenshots
+
+`tools/screenshot_window.cpp` renders the real window offscreen and grabs a
+frame in each state. Speech is real: a PATH shim makes the recorder read a WAV
+instead of the microphone, so VAD, recognition and the text pipeline all run for
+real. See the header comment in that file for how to run it.
 
 ## License
 
