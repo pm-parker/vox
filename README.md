@@ -146,8 +146,8 @@ Everything is set from the window — no config files to hand-edit:
 | Resume after silence | 0.4 – 3.0 s | How much silence ends a take |
 | Hot-word dictionary | editable list | Longest-first text replacement after recognition |
 
-Settings persist via QSettings under `~/.config/vox/` and apply to the running
-daemon immediately.
+Settings persist as JSON at `~/.local/share/vox/settings.json` and apply to
+the running daemon immediately.
 
 ## Command line
 
