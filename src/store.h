@@ -2,6 +2,7 @@
 
 #include <QDateTime>
 #include <QObject>
+#include <QJsonObject>
 #include <QStringList>
 #include <QVariantList>
 
@@ -24,6 +25,14 @@ class Store : public QObject {
     Q_PROPERTY(int gapMs READ gapMs WRITE setGapMs NOTIFY settingsChanged)
     // PulseAudio source name; "" follows the system default.
     Q_PROPERTY(QString microphone READ microphone WRITE setMicrophone NOTIFY settingsChanged)
+    // Active speech model id (see Engine::catalog); Engine downloads and
+    // transcribes with it.
+    Q_PROPERTY(QString model READ model WRITE setModel NOTIFY settingsChanged)
+    // Launch vox --minimized at login (Omarchy autostart entry).
+    Q_PROPERTY(bool autostart READ autostart WRITE setAutostart NOTIFY settingsChanged)
+    // Global hotkeys as {toggleKey, pttKey}, applied through
+    // ~/.config/vox/shortcuts.lua by omarchy-dictation-vox-keys.
+    Q_PROPERTY(QJsonObject shortcuts READ shortcuts WRITE setShortcuts NOTIFY settingsChanged)
 
 public:
     explicit Store(const QString &directory = {}, QObject *parent = nullptr);
@@ -52,6 +61,12 @@ public:
     void setGapMs(int ms);
     QString microphone() const;
     void setMicrophone(const QString &source);
+    QString model() const;
+    void setModel(const QString &model);
+    bool autostart() const;
+    void setAutostart(bool on);
+    QJsonObject shortcuts() const;
+    void setShortcuts(const QJsonObject &keys);
 
     // --- dictionary ---
     QVariantList dictionary() const;

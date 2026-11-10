@@ -107,6 +107,20 @@ QString Store::microphone() const { return m_settings.value("microphone", "").to
 
 void Store::setMicrophone(const QString &source) { setSetting("microphone", source); }
 
+QString Store::model() const { return m_settings.value("model", "sense-voice").toString(); }
+
+void Store::setModel(const QString &model) { setSetting("model", model); }
+
+bool Store::autostart() const { return m_settings.value("autostart", true).toBool(); }
+
+void Store::setAutostart(bool on) { setSetting("autostart", on); }
+
+QJsonObject Store::shortcuts() const {
+    return m_settings.value("shortcuts").toJsonObject();
+}
+
+void Store::setShortcuts(const QJsonObject &keys) { setSetting("shortcuts", keys); }
+
 QVariantList Store::dictionary() const { return m_dictionary; }
 
 void Store::setDictionary(const QVariantList &pairs) {

@@ -9,17 +9,72 @@
 #include <QThread>
 
 namespace {
-// Model archive: the int8-only export. The full-precision tarball is 1 GB
-// because it also carries a 895 MB fp32 model we would never load.
-// The archive holds model.int8.onnx and tokens.txt flat at its root.
-// The recognition binary is NOT in it — the Arch package ships
-// sherpa-onnx-offline separately, and a system copy works just as well.
-const char kArchiveUrl[] =
-    "https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/"
-    "sherpa-onnx-sense-voice-zh-en-ja-ko-yue-int8-2024-07-17.tar.bz2";
-const char kDirName[] = "sherpa-onnx-sense-voice-zh-en-ja-ko-yue-int8-2024-07-17";
-constexpr qint64 kArchiveBytes = 163'000'000; // approximate, for progress only
+// The catalog: every model vox can download, with the exact flags its
+// sherpa-onnx-offline invocation takes. URLs and sizes verified by HEAD
+// request + probe extraction on 2026-11-10; all three archives unpack to
+// <dirName>/ with the files listed.
+QVector<ModelSpec> buildCatalog() {
+    return {
+        {"sense-voice", "SenseVoice",
+         QObject::tr("zh/en/ja/ko/yue · punctuation + numbers · ~230 MB — recommended"),
+         "https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/"
+         "sherpa-onnx-sense-voice-zh-en-ja-ko-yue-int8-2024-07-17.tar.bz2",
+         "sherpa-onnx-sense-voice-zh-en-ja-ko-yue-int8-2024-07-17",
+         "model.int8.onnx", "tokens.txt", 163'000'000, "sense-voice",
+         {}},
+        {"paraformer", "Paraformer",
+         QObject::tr("zh + en · fastest decode, no punctuation · ~1 GB"),
+         "https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/"
+         "sherpa-onnx-paraformer-zh-2024-03-09.tar.bz2",
+         "sherpa-onnx-paraformer-zh-2024-03-09",
+         "model.int8.onnx", "tokens.txt", 997'000'000, "paraformer",
+         {}},
+        {"zipformer", "Zipformer (multilingual)",
+         QObject::tr("zh/en streaming-quality transducer · ~350 MB"),
+         "https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/"
+         "sherpa-onnx-zipformer-zh-en-2023-11-22.tar.bz2",
+         "sherpa-onnx-zipformer-zh-en-2023-11-22",
+         "encoder-epoch-99-avg-1.int8.onnx", "tokens.txt", 350'000'000, "transducer",
+         {}},
+    };
+}
 } // namespace
+
+const QVector<ModelSpec> &Engine::catalogSpecs() {
+    static const QVector<ModelSpec> catalog = buildCatalog();
+    return catalog;
+}
+
+QVariantList Engine::catalog() const {
+    QVariantList list;
+    for (const ModelSpec &entry : catalogSpecs()) {
+        const bool installed = QFileInfo::exists(m_dir + "/" + entry.dirName + "/" + entry.modelFile);
+        QVariantMap row;
+        row.insert("id", entry.id);
+        row.insert("name", entry.name);
+        row.insert("detail", entry.detail);
+        row.insert("installed", installed);
+        list.append(row);
+    }
+    return list;
+}
+
+void Engine::setModel(const QString &model) {
+    for (const ModelSpec &entry : catalogSpecs()) {
+        if (entry.id == model && m_model != model) {
+            m_model = model;
+            refresh();
+            return;
+        }
+    }
+}
+
+const ModelSpec &Engine::spec() const {
+    for (const ModelSpec &entry : catalogSpecs())
+        if (entry.id == m_model)
+            return entry;
+    return catalogSpecs().first();
+}
 
 Engine::Engine(const QString &modelsDirectory, QObject *parent)
     : QObject(parent),
@@ -123,7 +178,8 @@ void Engine::setPhase(const QString &phase) {
 void Engine::refresh() {
     if (m_downloading)
         return;
-    const bool ready = QFileInfo::exists(m_dir + "/" + kDirName + "/model.int8.onnx")
+    const ModelSpec &active = spec();
+    const bool ready = QFileInfo::exists(m_dir + "/" + active.dirName + "/" + active.modelFile)
                        && !findBin(m_dir).isEmpty();
     if (ready || m_phase == "error")
         m_error.clear();
@@ -136,6 +192,7 @@ void Engine::refresh() {
 void Engine::install() {
     if (m_downloading || m_phase == "ready")
         return;
+    const ModelSpec &active = spec();
     m_error.clear();
     m_progress = 0;
     setPhase("downloading");
@@ -144,7 +201,7 @@ void Engine::install() {
     // non-zero instead of being saved as a "model"; --continue-at resumes a
     // partial download after a network drop.
     m_fetch.start("curl", {"-fL", "--continue-at", "-", "--no-progress-meter",
-                           "-o", m_dir + "/asr.tar.bz2", kArchiveUrl});
+                           "-o", m_dir + "/asr.tar.bz2", active.archiveUrl});
     if (!m_fetch.waitForStarted(3000)) {
         m_downloading = false;
         m_error = tr("Model download failed: install curl first.");
@@ -158,7 +215,7 @@ void Engine::pollProgress() {
     if (!m_downloading)
         return;
     const qint64 got = QFileInfo(m_dir + "/asr.tar.bz2").size();
-    m_progress = int(qBound<qint64>(1, got * 100 / kArchiveBytes, qint64(99)));
+    m_progress = int(qBound<qint64>(1, got * 100 / spec().bytes, qint64(99)));
     emit phaseChanged();
 }
 
@@ -177,7 +234,7 @@ void Engine::finishDownload() {
     QProcess tar;
     tar.setWorkingDirectory(m_dir);
     tar.start("tar", {"xjf", archive});
-    if (!tar.waitForFinished(300000) || tar.exitCode() != 0) {
+    if (!tar.waitForFinished(600000) || tar.exitCode() != 0) {
         tar.kill();
         QFile::remove(archive);
         m_error = tr("The downloaded model archive could not be extracted.");
@@ -187,8 +244,9 @@ void Engine::finishDownload() {
     QFile::remove(archive);
     m_progress = 100;
     m_bin = findBin(m_dir);
+    const ModelSpec &active = spec();
     const bool ok = !m_bin.isEmpty()
-                    && QFileInfo::exists(m_dir + "/" + kDirName + "/model.int8.onnx");
+                    && QFileInfo::exists(m_dir + "/" + active.dirName + "/" + active.modelFile);
     if (!ok) {
         m_error = tr("The model archive did not contain what vox expected.");
         setPhase("error");
@@ -198,7 +256,7 @@ void Engine::finishDownload() {
 }
 
 void Engine::remove() {
-    QDir(m_dir + "/" + kDirName).removeRecursively();
+    QDir(m_dir + "/" + spec().dirName).removeRecursively();
     QFile::remove(m_dir + "/asr.tar.bz2");
     m_progress = 0;
     refresh();
@@ -244,18 +302,29 @@ void Engine::transcribe(const QString &wavPath, const QString &language, bool us
     }
     if (m_busy)
         return;
-    const QString root = m_dir + "/" + kDirName;
-    // Flag names follow the 2.x CLI: --sense-voice-use-itn and
-    // --sense-voice-language (the bare --use-itn/--language of older builds
-    // are rejected with "Invalid option").
-    QStringList args{
-        "--sense-voice-model=" + root + "/model.int8.onnx",
-        "--tokens=" + root + "/tokens.txt",
-        "--sense-voice-use-itn=" + (useItn ? QStringLiteral("true") : QStringLiteral("false")),
-        "--sense-voice-language=" + (language.isEmpty() ? QStringLiteral("auto") : language),
-        "--num-threads=" + QString::number(qMax(1, QThread::idealThreadCount() - 1)),
-        wavPath,
-    };
+    const ModelSpec &active = spec();
+    const QString root = m_dir + "/" + active.dirName;
+    // Flag names follow the 2.x CLI. SenseVoice natively punctuates and
+    // inverse-normalizes; Paraformer and Zipformer transducers need the
+    // shared encoder/decoder/joiner triple. Language and ITN flags are
+    // SenseVoice-only — the other kinds ignore those settings.
+    QStringList args;
+    if (active.kind == "sense-voice") {
+        args << "--sense-voice-model=" + root + "/" + active.modelFile;
+    } else if (active.kind == "paraformer") {
+        args << "--paraformer-model=" + root + "/" + active.modelFile;
+    } else {
+        args << "--zipformer2-model=" + root + "/" + active.modelFile
+             << "--decoder=" + root + "/decoder-epoch-99-avg-1.int8.onnx"
+             << "--joiner=" + root + "/joiner-epoch-99-avg-1.int8.onnx";
+    }
+    args << "--tokens=" + root + "/" + active.tokensFile;
+    if (active.kind == "sense-voice") {
+        args << "--sense-voice-use-itn=" + (useItn ? QStringLiteral("true") : QStringLiteral("false"))
+             << "--sense-voice-language=" + (language.isEmpty() ? QStringLiteral("auto") : language);
+    }
+    args << "--num-threads=" + QString::number(qMax(1, QThread::idealThreadCount() - 1))
+         << wavPath;
     m_worker.start(m_bin, args);
     if (!m_worker.waitForStarted(5000)) {
         emit failed(tr("The recognition engine could not start."));

@@ -11,7 +11,7 @@ import Vox
 ApplicationWindow {
     id: root
     width: 430
-    height: 880
+    height: 940
     visible: true
     color: "#161616"
     title: "vox"
@@ -90,6 +90,7 @@ ApplicationWindow {
         spacing: 12
 
         focus: true
+        Keys.forwardTo: [scroll]
         Keys.onPressed: (event) => {
             if (event.key === Qt.Key_Space) { Backend.toggle(); event.accepted = true }
             else if (event.key === Qt.Key_R) { Backend.repeatLast(); event.accepted = true }
@@ -345,15 +346,27 @@ ApplicationWindow {
             }
         }
 
-        // Settings
-        ColumnLayout {
+        // Scrollable body: settings grow with features, the window need
+        // not. Keys.forwardTo (above) feeds PgUp/PgDn/arrows to the bar.
+        Flickable {
+            id: scroll
             Layout.fillWidth: true
-            spacing: 6
-            Label {
-                text: qsTr("Settings")
-                color: root.dim
-                font.pixelSize: 11
-            }
+            Layout.fillHeight: true
+            contentHeight: body.height
+            clip: true
+            boundsBehavior: Flickable.StopAtBounds
+            ScrollBar.vertical: ScrollBar {}
+
+            ColumnLayout {
+                id: body
+                width: scroll.width
+                spacing: 12
+
+                Label {
+                    text: qsTr("Settings")
+                    color: root.dim
+                    font.pixelSize: 11
+                }
             SwitchRow {
                 Layout.fillWidth: true
                 label: qsTr("Insert text automatically")
@@ -407,9 +420,14 @@ ApplicationWindow {
                     onClicked: Settings.punctStyle = "en"
                 }
             }
-        }
+            SwitchRow {
+                Layout.fillWidth: true
+                label: qsTr("Start at login")
+                value: Settings.autostart
+                onChange: (checked) => Settings.autostart = checked
+            }
 
-        // Recognition card
+                // Recognition card
         Rectangle {
             Layout.fillWidth: true
             radius: root.rad
@@ -691,6 +709,88 @@ ApplicationWindow {
                         font.pixelSize: 12
                     }
                 }
+                // Model picker — Engine.catalog(), one entry per language
+                // family. Picking an uninstalled model flips the card into
+                // its download state; picking an installed one is instant.
+                RowLayout {
+                    Layout.fillWidth: true
+                    spacing: 8
+                    ComboBox {
+                        id: modelBox
+                        Layout.preferredWidth: 240
+                        enabled: Speech.phase !== "downloading" && Speech.phase !== "extracting"
+                        model: Speech.models
+                        textRole: "name"
+                        currentIndex: {
+                            const ids = Speech.models.map(function (m) { return m.id })
+                            const i = ids.indexOf(Speech.model)
+                            return i >= 0 ? i : 0
+                        }
+                        onActivated: (index) => Speech.model = Speech.models[index].id
+                        background: Rectangle {
+                            implicitWidth: 240; implicitHeight: 32
+                            radius: root.rad
+                            color: root.surfaceUp
+                            border.color: modelBox.activeFocus || modelBox.hovered ? root.accent : root.line
+                        }
+                        contentItem: Text {
+                            leftPadding: 10; rightPadding: 30
+                            text: modelBox.displayText
+                            color: root.fg
+                            font.pixelSize: 13
+                            verticalAlignment: Text.AlignVCenter
+                            elide: Text.ElideRight
+                        }
+                        indicator: Label {
+                            x: modelBox.width - width - 10
+                            anchors.verticalCenter: parent.verticalCenter
+                            text: "▾"; color: root.dim
+                        }
+                        delegate: ItemDelegate {
+                            width: modelBox.width
+                            contentItem: Text {
+                                leftPadding: 10
+                                text: model.id + (installed ? "  ✓" : "")
+                                color: highlighted ? root.accentFg : (installed ? root.fg : root.dim)
+                                font.pixelSize: 13
+                                verticalAlignment: Text.AlignVCenter
+                                elide: Text.ElideRight
+                            }
+                            highlighted: modelBox.highlightedIndex === index
+                            background: Rectangle {
+                                radius: 4
+                                color: highlighted ? root.accent : root.surfaceUp
+                            }
+                        }
+                        popup: Popup {
+                            y: modelBox.height + 4
+                            width: modelBox.width
+                            implicitHeight: contentItem.implicitHeight + 8
+                            padding: 2
+                            contentItem: ListView {
+                                clip: true
+                                implicitHeight: contentHeight
+                                model: modelBox.delegateModel
+                                currentIndex: modelBox.highlightedIndex
+                            }
+                            background: Rectangle {
+                                radius: root.rad
+                                color: root.surface
+                                border.color: root.line
+                            }
+                        }
+                    }
+                }
+                Label {
+                    Layout.fillWidth: true
+                    text: {
+                        const entry = Speech.models.find(function (m) { return m.id === Speech.model })
+                        return entry ? entry.detail : ""
+                    }
+                    color: root.dim
+                    font.pixelSize: 11
+                    wrapMode: Text.WordWrap
+                }
                 ProgressBar {
                     Layout.fillWidth: true
                     visible: Speech.phase === "downloading"
@@ -730,6 +830,99 @@ ApplicationWindow {
             }
         }
 
-        Item { Layout.fillHeight: true }
+        // Shortcuts card — global hotkeys, live-applied through Omarchy's
+        // dictation-backend hook. Type exactly what Hyprland expects, e.g.
+        // "ALT + SPACE" or "SUPER + V".
+        Rectangle {
+            Layout.fillWidth: true
+            radius: root.rad
+            color: root.surface
+            border.color: root.line
+            border.width: 1
+            implicitHeight: keysColumn.implicitHeight + 24
+            ColumnLayout {
+                id: keysColumn
+                anchors.fill: parent
+                anchors.margins: 12
+                spacing: 8
+                Label {
+                    text: qsTr("Shortcuts")
+                    color: root.dim
+                    font.pixelSize: 11
+                }
+                RowLayout {
+                    Layout.fillWidth: true
+                    spacing: 8
+                    Label {
+                        text: qsTr("Toggle dictation")
+                        color: root.fg
+                        font.pixelSize: 13
+                        Layout.fillWidth: true
+                    }
+                    TextField {
+                        id: toggleField
+                        Layout.preferredWidth: 170
+                        text: Settings.shortcuts.toggleKey || "ALT + SPACE"
+                        color: root.fg
+                        placeholderText: "ALT + SPACE"
+                        font.pixelSize: 13
+                        horizontalAlignment: TextInput.AlignHCenter
+                        background: Rectangle {
+                            radius: root.rad
+                            color: root.surfaceUp
+                            border.color: toggleField.activeFocus ? root.accent : root.line
+                        }
+                        onEditingFinished: {
+                            const keys = Settings.shortcuts
+                            keys.toggleKey = toggleField.text.trim()
+                            Settings.shortcuts = keys
+                        }
+                    }
+                }
+                RowLayout {
+                    Layout.fillWidth: true
+                    spacing: 8
+                    Label {
+                        text: qsTr("Push-to-talk (hold)")
+                        color: root.fg
+                        font.pixelSize: 13
+                        Layout.fillWidth: true
+                    }
+                    TextField {
+                        id: pttField
+                        Layout.preferredWidth: 170
+                        text: Settings.shortcuts.pttKey || "ALT + Alt_R"
+                        color: root.fg
+                        placeholderText: "ALT + Alt_R"
+                        font.pixelSize: 13
+                        horizontalAlignment: TextInput.AlignHCenter
+                        background: Rectangle {
+                            radius: root.rad
+                            color: root.surfaceUp
+                            border.color: pttField.activeFocus ? root.accent : root.line
+                        }
+                        onEditingFinished: {
+                            const keys = Settings.shortcuts
+                            keys.pttKey = pttField.text.trim()
+                            Settings.shortcuts = keys
+                        }
+                    }
+                }
+                RowLayout {
+                    Layout.fillWidth: true
+                    Item { Layout.fillWidth: true }
+                    PillButton { text: qsTr("Reset to defaults"); onClicked: Backend.resetShortcuts() }
+                }
+                Label {
+                    Layout.fillWidth: true
+                    text: qsTr("Changes apply immediately — press the keys to try.\nPush-to-talk ignores the silence auto-stop while held.")
+                    color: root.dim
+                    font.pixelSize: 11
+                    wrapMode: Text.WordWrap
+                }
+            }
+        }
+            }
+        }
     }
 }

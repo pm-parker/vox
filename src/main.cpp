@@ -6,6 +6,7 @@
 #include <QQmlApplicationEngine>
 #include <QQuickWindow>
 #include <QStandardPaths>
+#include <QTimer>
 
 #include <cstdio>
 
@@ -45,6 +46,34 @@ bool forwardToRunning(const QString &command) {
     socket.disconnectFromServer();
     return true;
 }
+
+// --print-setting KEY reads ~/.local/share/vox/settings.json offline — the
+// keys script runs it while vox may not be running, and must never spawn a
+// daemon just to learn a key name. Shell-safe output: single value, no echo.
+int printSetting(const QString &key) {
+    QFile file(QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation)
+               + "/vox/settings.json");
+    // "shortcuts.pttKey" means the pttKey member of the shortcuts object;
+    // everything else is a top-level settings key.
+    const QString leaf = key.section('.', -1);
+    if (file.open(QIODevice::ReadOnly)) {
+        const QJsonObject settings = QJsonDocument::fromJson(file.readAll()).object();
+        const QJsonValue shortcuts = settings.value("shortcuts");
+        if (shortcuts.isObject()) {
+            const QString value = shortcuts.toObject().value(leaf).toString();
+            if (!value.isEmpty()) {
+                std::printf("%s\n", value.toUtf8().constData());
+                return 0;
+            }
+        }
+    }
+    // Defaults must match the Shortcuts card's reset values.
+    if (leaf == "pttKey")
+        std::printf("ALT + Alt_R\n");
+    else
+        std::printf("ALT + SPACE\n");
+    return 0;
+}
 } // namespace
 
 int main(int argc, char *argv[]) {
@@ -60,12 +89,27 @@ int main(int argc, char *argv[]) {
             else if (arg == "--status") command = "status";
             else if (arg == "--copy-last") command = "copy-last";
             else if (arg == "--show") command = "show";
+            else if (arg == "--print-setting") {
+                // Offline: read settings.json and print one value (used by
+                // omarchy-dictation-vox-keys). Only the shortcuts subkeys.
+                if (i + 1 >= argc) {
+                    std::fprintf(stderr, "Usage: vox --print-setting toggleKey|pttKey\n");
+                    return 2;
+                }
+                return printSetting(QString::fromUtf8(argv[i + 1]));
+            }
             else if (arg == "--minimized") command = "__spawn"; // handled below
-            else { std::fprintf(stderr, "Usage: vox [--toggle|--hold-start|--hold-stop|--status|--copy-last|--show|--minimized]\n"); return 2; }
+            else { std::fprintf(stderr, "Usage: vox [--toggle|--hold-start|--hold-stop|--status|--copy-last|--show|--minimized|--print-setting KEY]\n"); return 2; }
         }
         if (command == "__spawn") {
-            // --minimized only makes sense as the daemon's own flag; fall through
-            // to normal startup with the window hidden.
+            // --minimized only makes sense as the daemon's own flag; fall
+            // through to normal startup with the window hidden — unless a
+            // daemon already runs: autostart double-fires and stale session
+            // leftovers must surface the window, not fight over the socket.
+            if (forwardToRunning("status")) {
+                forwardToRunning("show");
+                return 0;
+            }
         } else {
             if (!forwardToRunning(command)) {
                 std::fprintf(stderr, "vox is not running\n");
@@ -95,6 +139,10 @@ int main(int argc, char *argv[]) {
     auto *recorder = new Recorder({}, &app);
     auto *inserter = new Inserter(&app);
     auto *backend = new Backend(store, engine, recorder, inserter, &app);
+    // Autostart list is synced once on boot (deferred so the file exists
+    // even on a cold first start) and on every setting change.
+    QTimer::singleShot(0, backend, &Backend::applyAutostart);
+    QObject::connect(backend, &Backend::settingsChanged, backend, &Backend::applyAutostart);
     auto *reporter = new StatusReporter(&app);
     auto *control = new ControlServer(backend, &app);
     QObject::connect(backend, &Backend::stateChanged, reporter, [reporter, backend] {

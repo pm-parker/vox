@@ -1,6 +1,7 @@
 #pragma once
 
 #include <QObject>
+#include <QJsonObject>
 #include <QVariantList>
 
 class Engine;
@@ -30,6 +31,14 @@ class Backend : public QObject {
     Q_PROPERTY(QString microphone READ microphone WRITE setMicrophone NOTIFY settingsChanged)
     Q_PROPERTY(QVariantList dictionary READ dictionary NOTIFY dictionaryChanged)
     Q_PROPERTY(QVariantList micSources READ micSources NOTIFY micSourcesChanged)
+    // The active speech model (Engine downloads/transcribes with it) and
+    // whether vox starts minimized at login.
+    Q_PROPERTY(QString model READ model WRITE setModel NOTIFY settingsChanged)
+    Q_PROPERTY(bool autostart READ autostart WRITE setAutostart NOTIFY settingsChanged)
+    // Global hotkeys {toggleKey, pttKey} — Hyprland syntax. Writes go to
+    // the store and immediately re-run omarchy-dictation-vox-keys, which
+    // regenerates ~/.config/vox/shortcuts.lua and reloads the binds.
+    Q_PROPERTY(QJsonObject shortcuts READ shortcuts WRITE setShortcuts NOTIFY settingsChanged)
 
 public:
     explicit Backend(Store *store, Engine *engine, Recorder *recorder, Inserter *inserter,
@@ -58,6 +67,17 @@ public:
     Q_INVOKABLE void removeWord(const QString &from);
     // Pulse sources for the microphone picker, refreshed on demand.
     Q_INVOKABLE void refreshMics();
+    // Apply the autostart setting to the Omarchy startup list. Called once
+    // by main() after construction (deferred, so the autostart file exists
+    // even on a cold first boot) and again whenever the setting changes. A
+    // missing entry is only added when the setting is on — the package
+    // never secretly opts the user in.
+    Q_INVOKABLE void applyAutostart();
+    // Regenerate the shortcut file and reload the binds (runs the packaged
+    // omarchy-dictation-vox-keys). resetShortcuts also clears the saved
+    // overrides, returning the card to the Alt+Space / Alt_R defaults.
+    Q_INVOKABLE void applyShortcuts();
+    Q_INVOKABLE void resetShortcuts();
 
     QString language() const;
     void setLanguage(const QString &language);
@@ -67,6 +87,12 @@ public:
     void setGapMs(int ms);
     QString microphone() const;
     void setMicrophone(const QString &source);
+    QString model() const;
+    void setModel(const QString &model);
+    bool autostart() const;
+    void setAutostart(bool on);
+    QJsonObject shortcuts() const;
+    void setShortcuts(const QJsonObject &keys);
     QVariantList dictionary() const;
     QVariantList micSources() const;
 

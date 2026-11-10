@@ -45,7 +45,17 @@ ControlServer::~ControlServer() {
 
 bool ControlServer::listen() {
     const QString path = socketPath();
-    QFile::remove(path); // a stale socket from a crash is not a running app
+    // A stale socket from a crash is not a running app — but a socket that
+    // still answers IS: refuse to take over so two daemons never fight over
+    // the mic and the panel (the second instance exits instead).
+    QLocalSocket probe;
+    probe.connectToServer(path);
+    if (probe.waitForConnected(200)) {
+        probe.disconnectFromServer();
+        qWarning() << "vox: another daemon owns the control socket";
+        return false;
+    }
+    QFile::remove(path);
     QDir().mkpath(QStandardPaths::writableLocation(QStandardPaths::RuntimeLocation) + "/vox");
     if (!m_server.listen(path)) {
         qWarning() << "vox: control socket unavailable:" << m_server.errorString();

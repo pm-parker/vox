@@ -6,6 +6,10 @@
 #include "store.h"
 #include "textpipeline.h"
 
+#include <QFile>
+#include <QProcess>
+#include <QStandardPaths>
+
 Backend::Backend(Store *store, Engine *engine, Recorder *recorder, Inserter *inserter, QObject *parent)
     : QObject(parent), m_store(store), m_engine(engine), m_recorder(recorder), m_inserter(inserter) {
     connect(m_recorder, &Recorder::stopped, this, &Backend::onTakeFinished);
@@ -174,6 +178,73 @@ int Backend::gapMs() const { return m_store->gapMs(); }
 void Backend::setGapMs(int ms) { m_store->setGapMs(ms); }
 QString Backend::microphone() const { return m_store->microphone(); }
 void Backend::setMicrophone(const QString &source) { m_store->setMicrophone(source); }
+
+QString Backend::model() const { return m_store->model(); }
+
+void Backend::setModel(const QString &model) { m_store->setModel(model); }
+
+bool Backend::autostart() const { return m_store->autostart(); }
+
+void Backend::setAutostart(bool on) { m_store->setAutostart(on); }
+
+QJsonObject Backend::shortcuts() const { return m_store->shortcuts(); }
+
+// Persisting the keys applies them right away (the script unbinds the old
+// pair, regenerates ~/.config/vox/shortcuts.lua and reloads). At login the
+// binds come back on their own: dictation-backend.lua dofiles that file.
+void Backend::setShortcuts(const QJsonObject &keys) {
+    m_store->setShortcuts(keys);
+    applyShortcuts();
+}
+
+// Regenerate the shortcut binds: the packaged script re-reads the saved
+// keys, rewrites ~/.config/vox/shortcuts.lua (unbinding the previous pair
+// first) and reloads the Hyprland config. Detached so a daemon exit never
+// truncates the reload.
+void Backend::applyShortcuts() { QProcess::startDetached("omarchy-dictation-vox-keys", {}); }
+
+void Backend::resetShortcuts() {
+    QJsonObject defaults;
+    defaults.insert("toggleKey", "ALT + SPACE");
+    defaults.insert("pttKey", "ALT + Alt_R");
+    m_store->setShortcuts(defaults);
+    QProcess::startDetached("omarchy-dictation-vox-keys", {"--reset"});
+}
+
+// Keep ~/.config/hypr/autostart.lua in step with the setting. Omarchy ships
+// the default with its own "-- vox:" guard comment, so on means replacing
+// that comment with the real launch line, off means restoring it; on a file
+// without either (user rewrote it), on appends our line once.
+void Backend::applyAutostart() {
+    QFile file(QStandardPaths::writableLocation(QStandardPaths::HomeLocation)
+               + "/.config/hypr/autostart.lua");
+    if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
+        return;
+    QString text = QString::fromUtf8(file.readAll());
+    file.close();
+    const QString launchLine = "o.launch_on_start(\"vox --minimized\")";
+    const QString guardLine = "-- vox: disabled — toggle it back on in the vox window";
+    const bool wanted = m_store->autostart();
+    const bool listed = text.contains(launchLine);
+    const bool guarded = text.contains(guardLine);
+    if (wanted == listed)
+        return;
+    if (wanted && !listed) {
+        if (guarded)
+            text.replace(guardLine, launchLine + " -- vox: start at login");
+        else
+            text += (text.endsWith('\n') ? QString() : QStringLiteral("\n"))
+                    + launchLine + " -- vox: start at login\n";
+    } else if (listed) {
+        text.replace(launchLine + " -- vox: start at login", guardLine);
+        // Older installs wrote the line bare; still swap it.
+        text.replace(launchLine, guardLine);
+    }
+    if (file.open(QIODevice::WriteOnly | QIODevice::Text | QIODevice::Truncate)) {
+        file.write(text.toUtf8());
+        file.close();
+    }
+}
 QVariantList Backend::dictionary() const { return m_store->dictionary(); }
 void Backend::addWord(const QString &from, const QString &to) { m_store->addWord(from, to); }
 void Backend::removeWord(const QString &from) { m_store->removeWord(from); }
