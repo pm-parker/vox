@@ -11,10 +11,10 @@ No cloud, no accounts, no clipboard manager. SenseVoice runs on your CPU.
 </div>
 
 <p align="center">
-  <img src="assets/idle.png" width="215" alt="vox idle">
-  <img src="assets/listening.png" width="215" alt="listening">
-  <img src="assets/processing.png" width="215" alt="transcribing">
-  <img src="assets/transcribed.png" width="215" alt="transcribed">
+  <img src="docs/assets/idle.png" width="215" alt="vox idle">
+  <img src="docs/assets/listening.png" width="215" alt="listening">
+  <img src="docs/assets/processing.png" width="215" alt="transcribing">
+  <img src="docs/assets/transcribed.png" width="215" alt="transcribed">
 </p>
 
 <p align="center">
