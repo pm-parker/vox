@@ -4,6 +4,8 @@
 #include <QFileInfo>
 #include <QStandardPaths>
 
+#include <QDebug>
+
 namespace {
 constexpr int kSampleRate = 16000;
 constexpr int kChannels = 1;
@@ -22,6 +24,16 @@ Recorder::Recorder(const QString &takesDirectory, QObject *parent)
         feed(m_capture.readAllStandardOutput());
     });
     connect(&m_capture, &QProcess::errorOccurred, this, [this](QProcess::ProcessError) {
+        if (m_killQuiet) {
+            m_killQuiet = false;
+            return;
+        }
+        if (!m_recording) {
+            // A warm capture dying between takes is harmless; the next
+            // start respawns it.
+            m_warm = false;
+            return;
+        }
         // The user-facing message names the tool, per Omarchy's "say what's
         // wrong" rule; parec comes from libpulse.
         finish("error", tr("Microphone capture failed: parec (libpulse) could not run."));
@@ -62,23 +74,58 @@ bool Recorder::start(int gapMs, int waitFirstMs, int maxMs, bool autoStop, float
     if (!m_recording)
         return false;
     m_threshold = vadThreshold;
-    // pare c raw stream: fixed format so the VAD math and the model input
+    // parec raw stream: fixed format so the VAD math and the model input
     // agree on what the bytes mean. An empty source follows the system
-    // default; a picked source is passed straight through.
-    QStringList parecArgs{"--raw", "--format=s16", "--rate=16000", "--channels=1"};
-    if (!source.isEmpty())
-        parecArgs << ("--device=" + source);
-    m_capture.start("parec", parecArgs);
-    if (!m_capture.waitForStarted(3000)) {
-        finish("error", tr("Microphone capture failed: install libpulse for parec."));
-        return false;
+    // default; a picked source is passed straight through. A warm stream on
+    // the same source is promoted into this take; anything else respawns.
+    if (!m_warm || m_capture.state() == QProcess::NotRunning
+        || (!source.isEmpty() && source != m_activeSource)) {
+        if (m_capture.state() != QProcess::NotRunning) {
+            m_killQuiet = true;
+            m_capture.kill();
+            m_capture.waitForFinished(1000);
+        }
+        m_activeSource = source;
+        if (!spawnCapture() && !m_capture.waitForStarted(3000)) {
+            finish("error", tr("Microphone capture failed: install libpulse for parec."));
+            return false;
+        }
+    } else {
+        m_warm = false; // the warm stream becomes this take's live capture
     }
     return true;
 }
 
+bool Recorder::spawnCapture() {
+    QStringList parecArgs{"--raw", "--format=s16", "--rate=16000", "--channels=1"};
+    if (!m_activeSource.isEmpty())
+        parecArgs << ("--device=" + m_activeSource);
+    m_capture.start("parec", parecArgs);
+    return m_capture.state() != QProcess::NotRunning;
+}
+
+// Keep one raw parec flowing between takes. Its bytes are discarded while
+// m_warm — start() promotes the running process into the live capture, so a
+// hotkey never waits for a suspended PipeWire source to wake up.
+void Recorder::warmUp(const QString &source) {
+    if (m_recording || m_capture.state() != QProcess::NotRunning)
+        return;
+    m_activeSource = source;
+    spawnCapture();
+    m_warm = m_capture.state() != QProcess::NotRunning;
+    if (m_warm)
+        qInfo() << "vox: warm microphone capture running";
+}
+
 void Recorder::feed(const QByteArray &pcm) {
+    if (m_warm) {
+        // Inter-take keepalive stream: discard, keeping the source awake.
+        return;
+    }
     if (!m_recording)
         return;
+    if (m_dataBytes == 0 && !pcm.isEmpty())
+        qInfo() << "vox: first audio packet after" << m_clock.elapsed() << "ms (" << pcm.size() << "B)";
     m_take.write(pcm);
     m_dataBytes += pcm.size();
 
@@ -132,17 +179,20 @@ void Recorder::evaluateClocks() {
 void Recorder::stop(const QString &reason) {
     if (!m_recording)
         return;
-    if (m_capture.state() != QProcess::NotRunning) {
-        m_capture.disconnect(this);
-        m_capture.kill();
-        m_capture.waitForFinished(1000);
-    }
+    // Leave the raw capture running between takes: PipeWire sources suspend
+    // quickly and waking one swallows the first seconds of speech. And no
+    // disconnect() — the readyRead feed must survive for the NEXT take;
+    // severing it here was the bug that made every take after the first an
+    // empty 44-byte file.
+    m_warm = true;
     finish(reason);
 }
 
 void Recorder::finish(const QString &reason, const QString &error) {
     m_clockTick.stop();
     m_lastElapsedMs = int(m_clock.elapsed());
+    qInfo() << "vox: take" << reason << m_lastElapsedMs << "ms," << m_dataBytes << "B"
+            << (m_hasSpoken ? "voice" : "no-voice");
     if (m_take.isOpen()) {
         // Patch the RIFF sizes now that the data length is known.
         m_take.seek(0);

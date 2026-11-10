@@ -1,6 +1,6 @@
 pkgname=vox
 pkgver=1.3.0
-pkgrel=3
+pkgrel=5
 pkgdesc='Voice input for Omarchy — offline dictation into any window'
 arch=('x86_64' 'aarch64')
 license=('MIT')

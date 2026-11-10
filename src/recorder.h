@@ -32,6 +32,10 @@ public:
                const QString &source = {});
     void stop(const QString &reason);
     void feed(const QByteArray &pcm);
+    // Spawn the capture now so the first hotkey press finds an already
+    // flowing stream (PipeWire sources suspend and swallow speech while
+    // waking). Called by Backend at daemon startup.
+    void warmUp(const QString &source = {});
 
     static bool writeWavHeader(QFile *file, int sampleRate, int channels, qint64 dataBytes);
 
@@ -45,6 +49,13 @@ signals:
 private:
     void evaluateClocks();
     void finish(const QString &reason, const QString &error = {});
+    bool spawnCapture();
+
+    // PipeWire sources SUSPEND when idle and take seconds to wake; speech
+    // into that window is simply lost. A raw parec runs between takes with
+    // bytes discarded (m_warm), so a hotkey opens an already-flowing stream.
+    bool m_warm = false;
+    bool m_killQuiet = false; // suppress errorOccurred during deliberate kills
 
     QString m_takesDirectory;
     QProcess m_capture;
@@ -62,6 +73,7 @@ private:
     qint64 m_lastElapsedMs = 0;
     float m_level = 0;
     float m_threshold = 0.012f;
+    QString m_activeSource;
     qint64 m_dataBytes = 0;
     int m_pendingSamples = 0;
     qint64 m_windowEnergy = 0;

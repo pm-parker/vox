@@ -137,6 +137,9 @@ int main(int argc, char *argv[]) {
     auto *store = new Store({}, &app);
     auto *engine = new Engine({}, &app); // default model dir under ~/.local/share/vox
     auto *recorder = new Recorder({}, &app);
+    // Wake the microphone before the first hotkey: PipeWire sources suspend
+    // when idle and swallow everything said while waking up.
+    recorder->warmUp(store->microphone());
     auto *inserter = new Inserter(&app);
     auto *backend = new Backend(store, engine, recorder, inserter, &app);
     // Autostart list is synced once on boot (deferred so the file exists
