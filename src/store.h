@@ -16,7 +16,14 @@ class Store : public QObject {
     Q_PROPERTY(bool autoStop READ autoStop WRITE setAutoStop NOTIFY settingsChanged)
     Q_PROPERTY(QString punctStyle READ punctStyle WRITE setPunctStyle NOTIFY settingsChanged)
     Q_PROPERTY(QString insertMethod READ insertMethod WRITE setInsertMethod NOTIFY settingsChanged)
-    Q_PROPERTY(int gapMs READ gapMs CONSTANT)
+    // SenseVoice's recognition language: auto|zh|en|ja|ko|yue (the model's set).
+    Q_PROPERTY(QString language READ language WRITE setLanguage NOTIFY settingsChanged)
+    // Inverse text normalization: "二零二五" -> "2025", raw digits -> numbered.
+    Q_PROPERTY(bool useItn READ useItn WRITE setUseItn NOTIFY settingsChanged)
+    // Silence that ends a tap-to-dictate take.
+    Q_PROPERTY(int gapMs READ gapMs WRITE setGapMs NOTIFY settingsChanged)
+    // PulseAudio source name; "" follows the system default.
+    Q_PROPERTY(QString microphone READ microphone WRITE setMicrophone NOTIFY settingsChanged)
 
 public:
     explicit Store(const QString &directory = {}, QObject *parent = nullptr);
@@ -38,6 +45,13 @@ public:
     int maxMs() const;                        // absolute ceiling on a take
     QString insertMethod() const;             // "auto" | "wtype" | "clipboard"
     void setInsertMethod(const QString &method);
+    QString language() const;
+    void setLanguage(const QString &language);
+    bool useItn() const;
+    void setUseItn(bool on);
+    void setGapMs(int ms);
+    QString microphone() const;
+    void setMicrophone(const QString &source);
 
     // --- dictionary ---
     QVariantList dictionary() const;

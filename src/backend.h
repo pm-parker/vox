@@ -22,6 +22,14 @@ class Backend : public QObject {
     Q_PROPERTY(QVariantList history READ history NOTIFY historyChanged)
     Q_PROPERTY(QString statusLine READ statusLine NOTIFY statusChanged)
     Q_PROPERTY(QString errorText READ errorText NOTIFY errorChanged)
+    // Same settings as Store, mirrored so QML reads one type (Settings and
+    // Backend both work); writes land in the store and fire settingsChanged.
+    Q_PROPERTY(QString language READ language WRITE setLanguage NOTIFY settingsChanged)
+    Q_PROPERTY(bool useItn READ useItn WRITE setUseItn NOTIFY settingsChanged)
+    Q_PROPERTY(int gapMs READ gapMs WRITE setGapMs NOTIFY settingsChanged)
+    Q_PROPERTY(QString microphone READ microphone WRITE setMicrophone NOTIFY settingsChanged)
+    Q_PROPERTY(QVariantList dictionary READ dictionary NOTIFY dictionaryChanged)
+    Q_PROPERTY(QVariantList micSources READ micSources NOTIFY micSourcesChanged)
 
 public:
     explicit Backend(Store *store, Engine *engine, Recorder *recorder, Inserter *inserter,
@@ -45,6 +53,22 @@ public:
     Q_INVOKABLE void copyLast();
     Q_INVOKABLE void useHistoryText(int index);
     Q_INVOKABLE void dismissError();
+    Q_INVOKABLE void clearHistory();
+    Q_INVOKABLE void addWord(const QString &from, const QString &to);
+    Q_INVOKABLE void removeWord(const QString &from);
+    // Pulse sources for the microphone picker, refreshed on demand.
+    Q_INVOKABLE void refreshMics();
+
+    QString language() const;
+    void setLanguage(const QString &language);
+    bool useItn() const;
+    void setUseItn(bool on);
+    int gapMs() const;
+    void setGapMs(int ms);
+    QString microphone() const;
+    void setMicrophone(const QString &source);
+    QVariantList dictionary() const;
+    QVariantList micSources() const;
 
 signals:
     void stateChanged();
@@ -54,6 +78,11 @@ signals:
     void historyChanged();
     void statusChanged();
     void errorChanged();
+    void dictionaryChanged();
+    void micSourcesChanged();
+    // Forwarded from Store::settingsChanged so the mirrored settings
+    // properties (language/useItn/gapMs/microphone) have a NOTIFY of their own.
+    void settingsChanged();
 
 private:
     void onTakeFinished(const QString &wavPath, const QString &reason);
@@ -68,4 +97,5 @@ private:
     QString m_lastText;
     QString m_statusLine;
     QString m_errorText;
+    QVariantList m_micSources;
 };

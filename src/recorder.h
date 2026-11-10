@@ -28,7 +28,8 @@ public:
     // External feed mode lets tests (and any future in-process capture) drive
     // the endpointing state machine without spawning parec.
     void startExternalFeed(int gapMs, int waitFirstMs, int maxMs, bool autoStop);
-    bool start(int gapMs, int waitFirstMs, int maxMs, bool autoStop, float vadThreshold);
+    bool start(int gapMs, int waitFirstMs, int maxMs, bool autoStop, float vadThreshold,
+               const QString &source = {});
     void stop(const QString &reason);
     void feed(const QByteArray &pcm);
 

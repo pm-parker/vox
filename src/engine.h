@@ -37,7 +37,7 @@ public:
 
     // Runs the wav through SenseVoice. Emits transcribed(text) — already
     // punctuated by the model — or failed(message).
-    void transcribe(const QString &wavPath, const QString &language);
+    void transcribe(const QString &wavPath, const QString &language, bool useItn = true);
 
     static QString findBin(const QString &modelsDirectory);
     static QString parseOutput(const QByteArray &raw);   // testable output cleaner

@@ -131,6 +131,24 @@ In the vox window:
 | `C` | Copy the last transcript |
 | `M` | Download / retry the speech model |
 
+## Settings
+
+Everything is set from the window — no config files to hand-edit:
+
+| Setting | Values | Effect |
+| --- | --- | --- |
+| Insert text automatically | on / off | Type into the focused window, or only copy to clipboard |
+| Auto-stop on silence | on / off | End a tap-to-dictate take after a pause |
+| Punctuation | `，。` / `, .` | Full-width or half-width marks |
+| Language | auto / zh / en / ja / ko | Recognition language (SenseVoice's five) |
+| Number & date normalization | on / off | ITN — "早上九点" → "9 点" |
+| Microphone | any PulseAudio source | Recorded by name; follows the system default when unset |
+| Resume after silence | 0.4 – 3.0 s | How much silence ends a take |
+| Hot-word dictionary | editable list | Longest-first text replacement after recognition |
+
+Settings persist via QSettings under `~/.config/vox/` and apply to the running
+daemon immediately.
+
 ## Command line
 
 The daemon speaks a small newline-JSON protocol; the CLI is the convenient face

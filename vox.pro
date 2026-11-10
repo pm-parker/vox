@@ -1,4 +1,4 @@
-QT += core gui quick network
+QT += core gui quick network widgets svg
 CONFIG += c++17
 TEMPLATE = app
 TARGET = vox
@@ -14,7 +14,8 @@ SOURCES += \
     src/inserter.cpp \
     src/textpipeline.cpp \
     src/controlserver.cpp \
-    src/statusreporter.cpp
+    src/statusreporter.cpp \
+    src/trayicon.cpp
 
 HEADERS += \
     src/backend.h \
@@ -26,6 +27,7 @@ HEADERS += \
     src/inserter.h \
     src/textpipeline.h \
     src/controlserver.h \
-    src/statusreporter.h
+    src/statusreporter.h \
+    src/trayicon.h
 
 RESOURCES += src/resources.qrc

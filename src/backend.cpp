@@ -27,6 +27,8 @@ Backend::Backend(Store *store, Engine *engine, Recorder *recorder, Inserter *ins
         emit errorChanged();
     });
     connect(m_store, &Store::historyChanged, this, &Backend::historyChanged);
+    connect(m_store, &Store::dictionaryChanged, this, &Backend::dictionaryChanged);
+    connect(m_store, &Store::settingsChanged, this, &Backend::settingsChanged);
 }
 
 float Backend::level() const { return m_recorder->level(); }
@@ -45,7 +47,7 @@ void Backend::toggle() {
     m_errorText.clear();
     emit errorChanged();
     const bool started = m_recorder->start(m_store->gapMs(), m_store->waitFirstMs(), m_store->maxMs(),
-                                           m_store->autoStop(), 0.012f);
+                                           m_store->autoStop(), 0.012f, m_store->microphone());
     if (!started)
         return; // recorder already reported the failure
     m_state = "listening";
@@ -60,7 +62,7 @@ void Backend::holdStart() {
     m_errorText.clear();
     emit errorChanged();
     const bool started = m_recorder->start(m_store->gapMs(), m_store->waitFirstMs(), m_store->maxMs(),
-                                           false, 0.012f);
+                                           false, 0.012f, m_store->microphone());
     if (!started)
         return; // recorder already reported the failure
     m_state = "listening";
@@ -91,7 +93,7 @@ void Backend::onTakeFinished(const QString &wavPath, const QString &reason) {
     }
     m_state = "processing";
     emit stateChanged();
-    m_engine->transcribe(wavPath, "auto");
+    m_engine->transcribe(wavPath, m_store->language());
 }
 
 void Backend::onRecognized(const QString &raw) {
@@ -160,4 +162,55 @@ void Backend::dismissError() {
         return;
     m_errorText.clear();
     emit errorChanged();
+}
+
+// Settings pass straight to the store; the property NOTIFY (settingsChanged)
+// drives QML. gapMs lands in Recorder's start() arguments on the next take.
+QString Backend::language() const { return m_store->language(); }
+void Backend::setLanguage(const QString &language) { m_store->setLanguage(language); }
+bool Backend::useItn() const { return m_store->useItn(); }
+void Backend::setUseItn(bool on) { m_store->setUseItn(on); }
+int Backend::gapMs() const { return m_store->gapMs(); }
+void Backend::setGapMs(int ms) { m_store->setGapMs(ms); }
+QString Backend::microphone() const { return m_store->microphone(); }
+void Backend::setMicrophone(const QString &source) { m_store->setMicrophone(source); }
+QVariantList Backend::dictionary() const { return m_store->dictionary(); }
+void Backend::addWord(const QString &from, const QString &to) { m_store->addWord(from, to); }
+void Backend::removeWord(const QString &from) { m_store->removeWord(from); }
+void Backend::clearHistory() { m_store->clearHistory(); }
+
+QVariantList Backend::micSources() const { return m_micSources; }
+
+// The picker's options: the default entry first, then every PulseAudio source
+// via pactl (parec takes a source name; pactl lists them with descriptions).
+void Backend::refreshMics() {
+    auto *proc = new QProcess(this);
+    proc->start("pactl", {"list", "sources", "--short"});
+    connect(proc, &QProcess::finished, this, [this, proc](int code, QProcess::ExitStatus status) {
+        QVariantList sources;
+        QVariantMap first;
+        first.insert("name", "");
+        first.insert("desc", tr("System default microphone"));
+        sources.append(first);
+        if (code == 0 && status == QProcess::NormalExit) {
+            const QStringList lines = QString::fromUtf8(proc->readAllStandardOutput()).split('\n', Qt::SkipEmptyParts);
+            for (const QString &line : lines) {
+                // "short" form: NAME  DESCRIPTION (desc may contain spaces).
+                const int split = line.indexOf("  ");
+                const QString name = (split > 0 ? line.left(split) : line).trimmed();
+                QString desc = split > 0 ? line.mid(split).trimmed() : name;
+                if (name.isEmpty())
+                    continue;
+                QVariantMap entry;
+                entry.insert("name", name);
+                entry.insert("desc", desc);
+                sources.append(entry);
+            }
+        }
+        proc->deleteLater();
+        if (sources == m_micSources)
+            return;
+        m_micSources = sources;
+        emit micSourcesChanged();
+    });
 }

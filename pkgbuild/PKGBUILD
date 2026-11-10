@@ -1,6 +1,6 @@
 pkgname=vox
-pkgver=1.1.0
-pkgrel=2
+pkgver=1.2.0
+pkgrel=1
 pkgdesc='Voice input for Omarchy — offline dictation into any window'
 arch=('x86_64' 'aarch64')
 license=('MIT')
@@ -35,6 +35,12 @@ package() {
   # omarchy-install-dictation-vox to exist, and remove-dictation pairs with it.
   install -Dm755 "$startdir/omarchy-install-dictation-vox" "$pkgdir/usr/bin/omarchy-install-dictation-vox"
   install -Dm755 "$startdir/omarchy-remove-dictation-vox" "$pkgdir/usr/bin/omarchy-remove-dictation-vox"
+  # Omarchy bar panel: shipped canonical, synced into the user's plugins dir
+  # by omarchy-install-dictation-vox (the shell only loads user-dir plugins).
+  install -d "$pkgdir/usr/share/vox/panel"
+  install -Dm644 "$startdir/vox-panel/Panel.qml" "$pkgdir/usr/share/vox/panel/Panel.qml"
+  install -Dm644 "$startdir/vox-panel/Service.qml" "$pkgdir/usr/share/vox/panel/Service.qml"
+  install -Dm644 "$startdir/vox-panel/manifest.json" "$pkgdir/usr/share/vox/panel/manifest.json"
   # sherpa-onnx-offline, pulled out of the upstream static release.
   local bin
   bin=$(find "$srcdir" -type f -name sherpa-onnx-offline -perm -u+x | head -1)

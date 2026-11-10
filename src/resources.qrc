@@ -1,6 +1,7 @@
 <RCC>
   <qresource prefix="/vox">
     <file>ui/Main.qml</file>
+    <file>icons/mic.svg</file>
     <file>i18n/en.json</file>
     <file>i18n/zh-CN.json</file>
   </qresource>

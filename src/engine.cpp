@@ -237,7 +237,7 @@ QString Engine::parseOutput(const QByteArray &raw) {
     return prefixed.join(' ').trimmed();
 }
 
-void Engine::transcribe(const QString &wavPath, const QString &language) {
+void Engine::transcribe(const QString &wavPath, const QString &language, bool useItn) {
     if (m_phase != "ready" || m_bin.isEmpty()) {
         emit failed(tr("The speech model is not installed yet — press M in the window to download it once."));
         return;
@@ -251,7 +251,7 @@ void Engine::transcribe(const QString &wavPath, const QString &language) {
     QStringList args{
         "--sense-voice-model=" + root + "/model.int8.onnx",
         "--tokens=" + root + "/tokens.txt",
-        "--sense-voice-use-itn=true", // SenseVoice punctuates and normalizes numbers
+        "--sense-voice-use-itn=" + (useItn ? QStringLiteral("true") : QStringLiteral("false")),
         "--sense-voice-language=" + (language.isEmpty() ? QStringLiteral("auto") : language),
         "--num-threads=" + QString::number(qMax(1, QThread::idealThreadCount() - 1)),
         wavPath,

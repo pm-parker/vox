@@ -93,6 +93,20 @@ QString Store::insertMethod() const { return m_settings.value("insertMethod", "a
 
 void Store::setInsertMethod(const QString &method) { setSetting("insertMethod", method); }
 
+QString Store::language() const { return m_settings.value("language", "auto").toString(); }
+
+void Store::setLanguage(const QString &language) { setSetting("language", language); }
+
+bool Store::useItn() const { return m_settings.value("useItn", true).toBool(); }
+
+void Store::setUseItn(bool on) { setSetting("useItn", on); }
+
+void Store::setGapMs(int ms) { setSetting("gapMs", qBound(400, ms, 5000)); }
+
+QString Store::microphone() const { return m_settings.value("microphone", "").toString(); }
+
+void Store::setMicrophone(const QString &source) { setSetting("microphone", source); }
+
 QVariantList Store::dictionary() const { return m_dictionary; }
 
 void Store::setDictionary(const QVariantList &pairs) {

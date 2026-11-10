@@ -11,7 +11,7 @@ import Vox
 ApplicationWindow {
     id: root
     width: 430
-    height: 680
+    height: 880
     visible: true
     color: "#161616"
     title: "vox"
@@ -31,6 +31,7 @@ ApplicationWindow {
     readonly property bool processing: Backend.state === "processing"
 
     component PillButton: Button {
+        id: pill
         focusPolicy: Qt.NoFocus
         background: Rectangle {
             radius: root.rad
@@ -404,6 +405,248 @@ ApplicationWindow {
                         verticalAlignment: Text.AlignVCenter
                     }
                     onClicked: Settings.punctStyle = "en"
+                }
+            }
+        }
+
+        // Recognition card
+        Rectangle {
+            Layout.fillWidth: true
+            radius: root.rad
+            color: root.surface
+            border.color: root.line
+            border.width: 1
+            implicitHeight: recognitionColumn.implicitHeight + 24
+            ColumnLayout {
+                id: recognitionColumn
+                anchors.fill: parent
+                anchors.margins: 12
+                spacing: 8
+                RowLayout {
+                    Layout.fillWidth: true
+                    spacing: 8
+                    Rectangle {
+                        width: 8; height: 8; radius: 4
+                        anchors.verticalCenter: parent.verticalCenter
+                        color: root.dim
+                    }
+                    Label {
+                        text: qsTr("Recognition")
+                        color: root.fg
+                        font.pixelSize: 13
+                        Layout.fillWidth: true
+                    }
+                }
+                RowLayout {
+                    Layout.fillWidth: true
+                    Label {
+                        text: qsTr("Language")
+                        color: root.fg
+                        font.pixelSize: 13
+                        Layout.fillWidth: true
+                    }
+                    RowLayout {
+                        spacing: 6
+                        Repeater {
+                            model: ["auto", "zh", "en", "ja", "ko"]
+                            PillButton {
+                                required property string modelData
+                                text: modelData
+                                background: Rectangle {
+                                    radius: root.rad
+                                    color: Settings.language === modelData ? root.accent : root.surfaceUp
+                                    border.color: root.line
+                                }
+                                contentItem: Text {
+                                    text: parent.text
+                                    color: Settings.language === parent.modelData ? root.accentFg : root.fg
+                                    font.pixelSize: 13
+                                    horizontalAlignment: Text.AlignHCenter
+                                    verticalAlignment: Text.AlignVCenter
+                                }
+                                onClicked: Settings.language = modelData
+                            }
+                        }
+                    }
+                }
+                RowLayout {
+                    Layout.fillWidth: true
+                    Label {
+                        text: qsTr("Number & date normalization")
+                        color: root.fg
+                        font.pixelSize: 13
+                        Layout.fillWidth: true
+                    }
+                    PillButton {
+                        property bool on: Settings.useItn
+                        text: on ? qsTr("On") : qsTr("Off")
+                        background: Rectangle {
+                            radius: root.rad
+                            color: parent.on ? root.accent : root.surfaceUp
+                            border.color: root.line
+                        }
+                        contentItem: Text {
+                            text: parent.text
+                            color: parent.on ? root.accentFg : root.fg
+                            font.pixelSize: 13
+                            horizontalAlignment: Text.AlignHCenter
+                            verticalAlignment: Text.AlignVCenter
+                        }
+                        onClicked: Settings.useItn = !Settings.useItn
+                    }
+                }
+            }
+        }
+
+        // Audio card
+        Rectangle {
+            Layout.fillWidth: true
+            radius: root.rad
+            color: root.surface
+            border.color: root.line
+            border.width: 1
+            implicitHeight: audioColumn.implicitHeight + 24
+            ColumnLayout {
+                id: audioColumn
+                anchors.fill: parent
+                anchors.margins: 12
+                spacing: 8
+                RowLayout {
+                    Layout.fillWidth: true
+                    spacing: 8
+                    Rectangle {
+                        width: 8; height: 8; radius: 4
+                        anchors.verticalCenter: parent.verticalCenter
+                        color: root.dim
+                    }
+                    Label {
+                        text: qsTr("Audio")
+                        color: root.fg
+                        font.pixelSize: 13
+                        Layout.fillWidth: true
+                    }
+                }
+                RowLayout {
+                    Layout.fillWidth: true
+                    Label {
+                        text: qsTr("Microphone")
+                        color: root.fg
+                        font.pixelSize: 13
+                        Layout.fillWidth: true
+                    }
+                    ComboBox {
+                        id: micBox
+                        Layout.preferredWidth: 220
+                        model: Backend.micSources
+                        textRole: "desc"
+                        valueRole: "name"
+                        // Pure function of observable state — the sources list
+                        // arrives async from pactl, so a currentIndex binding
+                        // would miss the update and leave a blank box.
+                        displayText: {
+                            for (let i = 0; i < Backend.micSources.length; ++i)
+                                if (Backend.micSources[i].name === Settings.microphone)
+                                    return Backend.micSources[i].desc
+                            return qsTr("System default microphone")
+                        }
+                        onActivated: (i) => Settings.microphone = Backend.micSources[i].name
+                        background: Rectangle {
+                            radius: root.rad
+                            color: root.surfaceUp
+                            border.color: root.line
+                        }
+                        contentItem: Text {
+                            text: micBox.displayText
+                            color: root.fg
+                            font.pixelSize: 12
+                            verticalAlignment: Text.AlignVCenter
+                            elide: Text.ElideRight
+                            leftPadding: 10
+                            rightPadding: 24
+                        }
+                        indicator: Label {
+                            text: "▾"
+                            color: root.dim
+                            anchors.right: parent.right
+                            anchors.rightMargin: 8
+                            anchors.verticalCenter: parent.verticalCenter
+                        }
+                        delegate: ItemDelegate {
+                            id: micDelegate
+                            required property var modelData
+                            width: micBox.width
+                            contentItem: Text {
+                                text: micDelegate.modelData.desc
+                                color: root.fg
+                                font.pixelSize: 12
+                                verticalAlignment: Text.AlignVCenter
+                                elide: Text.ElideRight
+                            }
+                            highlighted: micBox.highlightedIndex === micDelegate.index
+                            background: Rectangle {
+                                radius: 4
+                                color: micDelegate.highlighted ? root.accent : root.surface
+                            }
+                        }
+                        popup: Popup {
+                            y: micBox.height + 4
+                            width: micBox.width
+                            padding: 4
+                            background: Rectangle {
+                                radius: root.rad
+                                color: root.surfaceUp
+                                border.color: root.line
+                            }
+                            contentItem: ListView {
+                                clip: true
+                                implicitHeight: Math.min(contentHeight, 240)
+                                model: micBox.delegateModel
+                                currentIndex: micBox.highlightedIndex
+                            }
+                        }
+                    }
+                }
+                RowLayout {
+                    Layout.fillWidth: true
+                    Label {
+                        text: qsTr("Resume after silence")
+                        color: root.fg
+                        font.pixelSize: 13
+                        Layout.fillWidth: true
+                    }
+                    Slider {
+                        id: gapSlider
+                        from: 400; to: 3000; stepSize: 100
+                        value: Settings.gapMs
+                        onMoved: Settings.gapMs = value
+                        implicitWidth: 150
+                        background: Rectangle {
+                            x: gapSlider.leftPadding
+                            y: gapSlider.topPadding + gapSlider.availableHeight / 2 - height / 2
+                            width: gapSlider.availableWidth
+                            height: 4
+                            radius: 2
+                            color: root.surfaceUp
+                            Rectangle {
+                                width: gapSlider.visualPosition * parent.width
+                                height: parent.height
+                                radius: 2
+                                color: root.accent
+                            }
+                        }
+                        handle: Rectangle {
+                            x: gapSlider.leftPadding + gapSlider.visualPosition * (gapSlider.availableWidth - width)
+                            y: gapSlider.topPadding + gapSlider.availableHeight / 2 - height / 2
+                            width: 14; height: 14; radius: 7
+                            color: root.accent
+                            border.color: root.line
+                        }
+                    }
+                    Label {
+                        text: (Settings.gapMs / 1000).toFixed(1) + "s"
+                        color: root.dim
+                        font.pixelSize: 12
+                    }
                 }
             }
         }

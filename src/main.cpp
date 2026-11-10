@@ -1,5 +1,5 @@
 #include <QDateTime>
-#include <QGuiApplication>
+#include <QApplication>
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QLocalSocket>
@@ -18,6 +18,7 @@
 #include "store.h"
 #include "theme.h"
 #include "translator.h"
+#include "trayicon.h"
 
 // One window, one job. Omarchy's own apps wire the same collaborators:
 // Store (settings + history), Engine (SenseVoice), Recorder (parec),
@@ -47,7 +48,7 @@ bool forwardToRunning(const QString &command) {
 } // namespace
 
 int main(int argc, char *argv[]) {
-    // CLI mode first, before QGuiApplication grabs a display: vox --toggle
+    // CLI mode first, before QApplication grabs a display: vox --toggle
     // --hold-start --hold-stop --status --show forward to the running daemon.
     if (argc > 1 && argv[1][0] == '-') {
         QString command;
@@ -84,11 +85,11 @@ int main(int argc, char *argv[]) {
         if (QString::fromUtf8(argv[i]) == "--minimized")
             minimized = true;
 
-    QGuiApplication app(argc, argv);
-    QGuiApplication::setOrganizationName("omarchy");
-    QGuiApplication::setApplicationName("vox");
+    QApplication app(argc, argv);
+    QApplication::setOrganizationName("omarchy");
+    QApplication::setApplicationName("vox");
 
-    const QString dataDir = QGuiApplication::applicationDirPath() + "/data";
+    const QString dataDir = QApplication::applicationDirPath() + "/data";
     auto *store = new Store({}, &app);
     auto *engine = new Engine({}, &app); // default model dir under ~/.local/share/vox
     auto *recorder = new Recorder({}, &app);
@@ -108,8 +109,8 @@ int main(int argc, char *argv[]) {
     QObject::connect(backend, &Backend::errorChanged, reporter, [reporter, backend] {
         reporter->setError(backend->errorText());
     });
-    QObject::connect(control, &ControlServer::quitRequested, &app, &QGuiApplication::quit);
-    QObject::connect(&app, &QGuiApplication::aboutToQuit, reporter, [reporter] { reporter->setOffline(); });
+    QObject::connect(control, &ControlServer::quitRequested, &app, &QApplication::quit);
+    QObject::connect(&app, &QApplication::aboutToQuit, reporter, [reporter] { reporter->setOffline(); });
     control->listen();
     auto *theme = new Theme(dataDir + "/current/theme", &app);
     auto *translator = new Translator(dataDir + "/current/language", ":/i18n", &app);
@@ -133,7 +134,7 @@ int main(int argc, char *argv[]) {
     QObject::connect(translator, &Translator::changed, &qml, &QQmlApplicationEngine::retranslate);
     QObject::connect(
         &qml, &QQmlApplicationEngine::objectCreationFailed, &app,
-        [] { QGuiApplication::exit(1); }, Qt::QueuedConnection);
+        [] { QApplication::exit(1); }, Qt::QueuedConnection);
     // Plain qmake + RESOURCES has no qmldir, so load the qrc URL directly
     // instead of loadFromModule (that path needs qt_add_qml_module).
     qml.load(QUrl("qrc:/vox/ui/Main.qml"));
@@ -155,9 +156,20 @@ int main(int argc, char *argv[]) {
     if (minimized) {
         // Daemon mode for autostart and the dictation adapter: the window
         // exists but stays hidden until "show" arrives.
-        if (auto *window = qobject_cast<QQuickWindow *>(qml.rootObjects().first()))
-            window->hide();
+        if (auto *rootWindow = qobject_cast<QQuickWindow *>(qml.rootObjects().first()))
+            rootWindow->hide();
     }
 
-    return QGuiApplication::exec();
+    // Native tray icon: the mic follows the dictation state, the menu drives
+    // dictate/copy, and closing the window hides to the tray instead of
+    // quitting — vox stays a dictation daemon until Quit is chosen.
+    auto *rootWindow = qobject_cast<QQuickWindow *>(qml.rootObjects().value(0));
+    auto *tray = new TrayIcon(backend, rootWindow, &app);
+    Q_UNUSED(tray)
+    QObject::connect(rootWindow, &QQuickWindow::visibilityChanged, tray,
+                     [tray](QWindow::Visibility visibility) {
+                         tray->windowVisible(visibility != QWindow::Hidden);
+                     });
+
+    return QApplication::exec();
 }

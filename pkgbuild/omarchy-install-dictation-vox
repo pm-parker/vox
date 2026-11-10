@@ -17,6 +17,13 @@ fi
 # adapter, so switching is pure backend selection. The SenseVoice model
 # (~163 MB) downloads automatically on first use.
 omarchy-dictation-use vox
+# Keep the bar panel current with the packaged copy (idempotent); the shell
+# only loads user-dir plugins.
+if [[ -d /usr/share/vox/panel ]]; then
+  mkdir -p ~/.config/omarchy/plugins/vox-panel
+  cp -f /usr/share/vox/panel/{Panel.qml,Service.qml,manifest.json} ~/.config/omarchy/plugins/vox-panel/
+  omarchy-shell -q shell rescanPlugins
+fi
 omarchy-restart-hyprctl
 
 if [[ $background == "false" ]]; then

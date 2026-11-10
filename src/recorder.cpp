@@ -56,14 +56,19 @@ void Recorder::startExternalFeed(int gapMs, int waitFirstMs, int maxMs, bool aut
     emit recordingChanged();
 }
 
-bool Recorder::start(int gapMs, int waitFirstMs, int maxMs, bool autoStop, float vadThreshold) {
+bool Recorder::start(int gapMs, int waitFirstMs, int maxMs, bool autoStop, float vadThreshold,
+                     const QString &source) {
     startExternalFeed(gapMs, waitFirstMs, maxMs, autoStop);
     if (!m_recording)
         return false;
     m_threshold = vadThreshold;
     // pare c raw stream: fixed format so the VAD math and the model input
-    // agree on what the bytes mean.
-    m_capture.start("parec", {"--raw", "--format=s16", "--rate=16000", "--channels=1"});
+    // agree on what the bytes mean. An empty source follows the system
+    // default; a picked source is passed straight through.
+    QStringList parecArgs{"--raw", "--format=s16", "--rate=16000", "--channels=1"};
+    if (!source.isEmpty())
+        parecArgs << ("--device=" + source);
+    m_capture.start("parec", parecArgs);
     if (!m_capture.waitForStarted(3000)) {
         finish("error", tr("Microphone capture failed: install libpulse for parec."));
         return false;

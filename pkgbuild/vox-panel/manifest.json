@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "id": "vox.panel",
+  "name": "Vox",
+  "version": "1.1.3",
+  "author": "vox",
+  "license": "MIT",
+  "description": "Vox dictation status in the Omarchy bar: live state, the last transcription, and quick dictate/copy controls.",
+  "kinds": [
+    "bar-widget"
+  ],
+  "entryPoints": {
+    "barWidget": "Panel.qml"
+  },
+  "barWidget": {
+    "displayName": "Vox",
+    "description": "Live dictation state, the last transcription, and dictate/copy controls for the vox daemon.",
+    "category": "Status",
+    "allowMultiple": false,
+    "defaultSection": "right",
+    "defaults": {
+      "iconSize": 20
+    },
+    "schema": [
+      {
+        "key": "iconSize",
+        "type": "integer",
+        "label": "Icon size",
+        "min": 8,
+        "max": 24,
+        "step": 1,
+        "defaultValue": 20
+      }
+    ]
+  }
+}

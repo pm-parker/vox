@@ -14,10 +14,10 @@ EQ            = =
 
 CC            = gcc
 CXX           = g++
-DEFINES       = -DQT_NO_DEBUG -DQT_QUICK_LIB -DQT_OPENGL_LIB -DQT_GUI_LIB -DQT_QML_LIB -DQT_QMLINTEGRATION_LIB -DQT_NETWORK_LIB -DQT_CORE_LIB
+DEFINES       = -DQT_NO_DEBUG -DQT_QUICK_LIB -DQT_OPENGL_LIB -DQT_WIDGETS_LIB -DQT_SVG_LIB -DQT_GUI_LIB -DQT_QML_LIB -DQT_QMLINTEGRATION_LIB -DQT_NETWORK_LIB -DQT_CORE_LIB
 CFLAGS        = -pipe -O2 -Wall -Wextra -mno-direct-extern-access -D_REENTRANT $(DEFINES)
 CXXFLAGS      = -pipe -O2 -std=gnu++17 -Wall -Wextra -mno-direct-extern-access -D_REENTRANT $(DEFINES)
-INCPATH       = -I. -I/usr/include/qt6 -I/usr/include/qt6/QtQuick -I/usr/include/qt6/QtOpenGL -I/usr/include/qt6/QtGui -I/usr/include/qt6/QtQml -I/usr/include/qt6/QtQmlIntegration -I/usr/include/qt6/QtNetwork -I/usr/include/qt6/QtCore -I. -I/usr/lib/qt6/mkspecs/linux-g++
+INCPATH       = -I. -I/usr/include/qt6 -I/usr/include/qt6/QtQuick -I/usr/include/qt6/QtOpenGL -I/usr/include/qt6/QtWidgets -I/usr/include/qt6/QtSvg -I/usr/include/qt6/QtGui -I/usr/include/qt6/QtQml -I/usr/include/qt6/QtQmlIntegration -I/usr/include/qt6/QtNetwork -I/usr/include/qt6/QtCore -I. -I/usr/lib/qt6/mkspecs/linux-g++
 QMAKE         = /usr/bin/qmake6
 DEL_FILE      = rm -f
 CHK_DIR_EXISTS= test -d
@@ -40,7 +40,7 @@ DISTNAME      = vox1.0.0
 DISTDIR = /home/h523034406/Work/vox/.tmp/vox1.0.0
 LINK          = g++
 LFLAGS        = -Wl,-O1 -Wl,-rpath,/usr/lib -Wl,-rpath-link,/usr/lib
-LIBS          = $(SUBLIBS) /usr/lib/libQt6Quick.so /usr/lib/libQt6OpenGL.so /usr/lib/libQt6Gui.so /usr/lib/libGLX.so /usr/lib/libOpenGL.so /usr/lib/libQt6Qml.so /usr/lib/libQt6Network.so /usr/lib/libQt6Core.so -lpthread -lGLX -lOpenGL   
+LIBS          = $(SUBLIBS) /usr/lib/libQt6Quick.so /usr/lib/libQt6OpenGL.so /usr/lib/libQt6Widgets.so /usr/lib/libQt6Svg.so /usr/lib/libQt6Gui.so /usr/lib/libGLX.so /usr/lib/libOpenGL.so /usr/lib/libQt6Qml.so /usr/lib/libQt6Network.so /usr/lib/libQt6Core.so -lpthread -lGLX -lOpenGL   
 AR            = ar cqs
 RANLIB        = 
 SED           = sed
@@ -62,7 +62,8 @@ SOURCES       = src/main.cpp \
 		src/inserter.cpp \
 		src/textpipeline.cpp \
 		src/controlserver.cpp \
-		src/statusreporter.cpp qrc_resources.cpp \
+		src/statusreporter.cpp \
+		src/trayicon.cpp qrc_resources.cpp \
 		moc_backend.cpp \
 		moc_theme.cpp \
 		moc_translator.cpp \
@@ -71,7 +72,8 @@ SOURCES       = src/main.cpp \
 		moc_engine.cpp \
 		moc_inserter.cpp \
 		moc_controlserver.cpp \
-		moc_statusreporter.cpp
+		moc_statusreporter.cpp \
+		moc_trayicon.cpp
 OBJECTS       = main.o \
 		backend.o \
 		theme.o \
@@ -83,6 +85,7 @@ OBJECTS       = main.o \
 		textpipeline.o \
 		controlserver.o \
 		statusreporter.o \
+		trayicon.o \
 		qrc_resources.o \
 		moc_backend.o \
 		moc_theme.o \
@@ -92,7 +95,8 @@ OBJECTS       = main.o \
 		moc_engine.o \
 		moc_inserter.o \
 		moc_controlserver.o \
-		moc_statusreporter.o
+		moc_statusreporter.o \
+		moc_trayicon.o
 DIST          = /usr/lib/qt6/mkspecs/features/spec_pre.prf \
 		/usr/lib/qt6/mkspecs/common/unix.conf \
 		/usr/lib/qt6/mkspecs/common/linux.conf \
@@ -313,6 +317,7 @@ DIST          = /usr/lib/qt6/mkspecs/features/spec_pre.prf \
 		/usr/lib/qt6/mkspecs/features/moc.prf \
 		/usr/lib/qt6/mkspecs/features/link_ltcg.prf \
 		/usr/lib/qt6/mkspecs/features/unix/opengl.prf \
+		/usr/lib/qt6/mkspecs/features/uic.prf \
 		/usr/lib/qt6/mkspecs/features/unix/no_direct_extern_access.prf \
 		/usr/lib/qt6/mkspecs/features/unix/thread.prf \
 		/usr/lib/qt6/mkspecs/features/qmake_use.prf \
@@ -330,7 +335,8 @@ DIST          = /usr/lib/qt6/mkspecs/features/spec_pre.prf \
 		src/inserter.h \
 		src/textpipeline.h \
 		src/controlserver.h \
-		src/statusreporter.h src/main.cpp \
+		src/statusreporter.h \
+		src/trayicon.h src/main.cpp \
 		src/backend.cpp \
 		src/theme.cpp \
 		src/translator.cpp \
@@ -340,7 +346,8 @@ DIST          = /usr/lib/qt6/mkspecs/features/spec_pre.prf \
 		src/inserter.cpp \
 		src/textpipeline.cpp \
 		src/controlserver.cpp \
-		src/statusreporter.cpp
+		src/statusreporter.cpp \
+		src/trayicon.cpp
 QMAKE_TARGET  = vox
 DESTDIR       = 
 TARGET        = vox
@@ -572,6 +579,7 @@ Makefile: vox.pro /usr/lib/qt6/mkspecs/linux-g++/qmake.conf /usr/lib/qt6/mkspecs
 		/usr/lib/qt6/mkspecs/features/moc.prf \
 		/usr/lib/qt6/mkspecs/features/link_ltcg.prf \
 		/usr/lib/qt6/mkspecs/features/unix/opengl.prf \
+		/usr/lib/qt6/mkspecs/features/uic.prf \
 		/usr/lib/qt6/mkspecs/features/unix/no_direct_extern_access.prf \
 		/usr/lib/qt6/mkspecs/features/unix/thread.prf \
 		/usr/lib/qt6/mkspecs/features/qmake_use.prf \
@@ -584,6 +592,8 @@ Makefile: vox.pro /usr/lib/qt6/mkspecs/linux-g++/qmake.conf /usr/lib/qt6/mkspecs
 		src/resources.qrc \
 		/usr/lib/libQt6Quick.prl \
 		/usr/lib/libQt6OpenGL.prl \
+		/usr/lib/libQt6Widgets.prl \
+		/usr/lib/libQt6Svg.prl \
 		/usr/lib/libQt6Gui.prl \
 		/usr/lib/libQt6Qml.prl \
 		/usr/lib/libQt6Network.prl \
@@ -809,6 +819,7 @@ Makefile: vox.pro /usr/lib/qt6/mkspecs/linux-g++/qmake.conf /usr/lib/qt6/mkspecs
 /usr/lib/qt6/mkspecs/features/moc.prf:
 /usr/lib/qt6/mkspecs/features/link_ltcg.prf:
 /usr/lib/qt6/mkspecs/features/unix/opengl.prf:
+/usr/lib/qt6/mkspecs/features/uic.prf:
 /usr/lib/qt6/mkspecs/features/unix/no_direct_extern_access.prf:
 /usr/lib/qt6/mkspecs/features/unix/thread.prf:
 /usr/lib/qt6/mkspecs/features/qmake_use.prf:
@@ -821,6 +832,8 @@ vox.pro:
 src/resources.qrc:
 /usr/lib/libQt6Quick.prl:
 /usr/lib/libQt6OpenGL.prl:
+/usr/lib/libQt6Widgets.prl:
+/usr/lib/libQt6Svg.prl:
 /usr/lib/libQt6Gui.prl:
 /usr/lib/libQt6Qml.prl:
 /usr/lib/libQt6Network.prl:
@@ -841,8 +854,8 @@ distdir: FORCE
 	$(COPY_FILE) --parents $(DIST) $(DISTDIR)/
 	$(COPY_FILE) --parents src/resources.qrc $(DISTDIR)/
 	$(COPY_FILE) --parents /usr/lib/qt6/mkspecs/features/data/dummy.cpp $(DISTDIR)/
-	$(COPY_FILE) --parents src/backend.h src/theme.h src/translator.h src/store.h src/recorder.h src/engine.h src/inserter.h src/textpipeline.h src/controlserver.h src/statusreporter.h $(DISTDIR)/
-	$(COPY_FILE) --parents src/main.cpp src/backend.cpp src/theme.cpp src/translator.cpp src/store.cpp src/recorder.cpp src/engine.cpp src/inserter.cpp src/textpipeline.cpp src/controlserver.cpp src/statusreporter.cpp $(DISTDIR)/
+	$(COPY_FILE) --parents src/backend.h src/theme.h src/translator.h src/store.h src/recorder.h src/engine.h src/inserter.h src/textpipeline.h src/controlserver.h src/statusreporter.h src/trayicon.h $(DISTDIR)/
+	$(COPY_FILE) --parents src/main.cpp src/backend.cpp src/theme.cpp src/translator.cpp src/store.cpp src/recorder.cpp src/engine.cpp src/inserter.cpp src/textpipeline.cpp src/controlserver.cpp src/statusreporter.cpp src/trayicon.cpp $(DISTDIR)/
 
 
 clean: compiler_clean 
@@ -873,7 +886,8 @@ qrc_resources.cpp: src/resources.qrc \
 		/usr/lib/qt6/rcc \
 		src/ui/Main.qml \
 		src/i18n/zh-CN.json \
-		src/i18n/en.json
+		src/i18n/en.json \
+		src/icons/mic.svg
 	/usr/lib/qt6/rcc -name resources src/resources.qrc -o qrc_resources.cpp
 
 compiler_moc_predefs_make_all: moc_predefs.h
@@ -882,58 +896,65 @@ compiler_moc_predefs_clean:
 moc_predefs.h: /usr/lib/qt6/mkspecs/features/data/dummy.cpp
 	g++ -pipe -O2 -std=gnu++17 -Wall -Wextra -dM -E -o moc_predefs.h /usr/lib/qt6/mkspecs/features/data/dummy.cpp
 
-compiler_moc_header_make_all: moc_backend.cpp moc_theme.cpp moc_translator.cpp moc_store.cpp moc_recorder.cpp moc_engine.cpp moc_inserter.cpp moc_controlserver.cpp moc_statusreporter.cpp
+compiler_moc_header_make_all: moc_backend.cpp moc_theme.cpp moc_translator.cpp moc_store.cpp moc_recorder.cpp moc_engine.cpp moc_inserter.cpp moc_controlserver.cpp moc_statusreporter.cpp moc_trayicon.cpp
 compiler_moc_header_clean:
-	-$(DEL_FILE) moc_backend.cpp moc_theme.cpp moc_translator.cpp moc_store.cpp moc_recorder.cpp moc_engine.cpp moc_inserter.cpp moc_controlserver.cpp moc_statusreporter.cpp
+	-$(DEL_FILE) moc_backend.cpp moc_theme.cpp moc_translator.cpp moc_store.cpp moc_recorder.cpp moc_engine.cpp moc_inserter.cpp moc_controlserver.cpp moc_statusreporter.cpp moc_trayicon.cpp
 moc_backend.cpp: src/backend.h \
 		moc_predefs.h \
 		/usr/lib/qt6/moc
-	/usr/lib/qt6/moc $(DEFINES) --include /home/h523034406/Work/vox/moc_predefs.h -I/usr/lib/qt6/mkspecs/linux-g++ -I/home/h523034406/Work/vox -I/usr/include/qt6 -I/usr/include/qt6/QtQuick -I/usr/include/qt6/QtOpenGL -I/usr/include/qt6/QtGui -I/usr/include/qt6/QtQml -I/usr/include/qt6/QtQmlIntegration -I/usr/include/qt6/QtNetwork -I/usr/include/qt6/QtCore -I/usr/include/c++/16 -I/usr/include/c++/16/x86_64-pc-linux-gnu -I/usr/include/c++/16/backward -I/usr/lib/gcc/x86_64-pc-linux-gnu/16/include -I/usr/local/include -I/usr/include src/backend.h -o moc_backend.cpp
+	/usr/lib/qt6/moc $(DEFINES) --include /home/h523034406/Work/vox/moc_predefs.h -I/usr/lib/qt6/mkspecs/linux-g++ -I/home/h523034406/Work/vox -I/usr/include/qt6 -I/usr/include/qt6/QtQuick -I/usr/include/qt6/QtOpenGL -I/usr/include/qt6/QtWidgets -I/usr/include/qt6/QtSvg -I/usr/include/qt6/QtGui -I/usr/include/qt6/QtQml -I/usr/include/qt6/QtQmlIntegration -I/usr/include/qt6/QtNetwork -I/usr/include/qt6/QtCore -I/usr/include/c++/16 -I/usr/include/c++/16/x86_64-pc-linux-gnu -I/usr/include/c++/16/backward -I/usr/lib/gcc/x86_64-pc-linux-gnu/16/include -I/usr/local/include -I/usr/include src/backend.h -o moc_backend.cpp
 
 moc_theme.cpp: src/theme.h \
 		moc_predefs.h \
 		/usr/lib/qt6/moc
-	/usr/lib/qt6/moc $(DEFINES) --include /home/h523034406/Work/vox/moc_predefs.h -I/usr/lib/qt6/mkspecs/linux-g++ -I/home/h523034406/Work/vox -I/usr/include/qt6 -I/usr/include/qt6/QtQuick -I/usr/include/qt6/QtOpenGL -I/usr/include/qt6/QtGui -I/usr/include/qt6/QtQml -I/usr/include/qt6/QtQmlIntegration -I/usr/include/qt6/QtNetwork -I/usr/include/qt6/QtCore -I/usr/include/c++/16 -I/usr/include/c++/16/x86_64-pc-linux-gnu -I/usr/include/c++/16/backward -I/usr/lib/gcc/x86_64-pc-linux-gnu/16/include -I/usr/local/include -I/usr/include src/theme.h -o moc_theme.cpp
+	/usr/lib/qt6/moc $(DEFINES) --include /home/h523034406/Work/vox/moc_predefs.h -I/usr/lib/qt6/mkspecs/linux-g++ -I/home/h523034406/Work/vox -I/usr/include/qt6 -I/usr/include/qt6/QtQuick -I/usr/include/qt6/QtOpenGL -I/usr/include/qt6/QtWidgets -I/usr/include/qt6/QtSvg -I/usr/include/qt6/QtGui -I/usr/include/qt6/QtQml -I/usr/include/qt6/QtQmlIntegration -I/usr/include/qt6/QtNetwork -I/usr/include/qt6/QtCore -I/usr/include/c++/16 -I/usr/include/c++/16/x86_64-pc-linux-gnu -I/usr/include/c++/16/backward -I/usr/lib/gcc/x86_64-pc-linux-gnu/16/include -I/usr/local/include -I/usr/include src/theme.h -o moc_theme.cpp
 
 moc_translator.cpp: src/translator.h \
 		moc_predefs.h \
 		/usr/lib/qt6/moc
-	/usr/lib/qt6/moc $(DEFINES) --include /home/h523034406/Work/vox/moc_predefs.h -I/usr/lib/qt6/mkspecs/linux-g++ -I/home/h523034406/Work/vox -I/usr/include/qt6 -I/usr/include/qt6/QtQuick -I/usr/include/qt6/QtOpenGL -I/usr/include/qt6/QtGui -I/usr/include/qt6/QtQml -I/usr/include/qt6/QtQmlIntegration -I/usr/include/qt6/QtNetwork -I/usr/include/qt6/QtCore -I/usr/include/c++/16 -I/usr/include/c++/16/x86_64-pc-linux-gnu -I/usr/include/c++/16/backward -I/usr/lib/gcc/x86_64-pc-linux-gnu/16/include -I/usr/local/include -I/usr/include src/translator.h -o moc_translator.cpp
+	/usr/lib/qt6/moc $(DEFINES) --include /home/h523034406/Work/vox/moc_predefs.h -I/usr/lib/qt6/mkspecs/linux-g++ -I/home/h523034406/Work/vox -I/usr/include/qt6 -I/usr/include/qt6/QtQuick -I/usr/include/qt6/QtOpenGL -I/usr/include/qt6/QtWidgets -I/usr/include/qt6/QtSvg -I/usr/include/qt6/QtGui -I/usr/include/qt6/QtQml -I/usr/include/qt6/QtQmlIntegration -I/usr/include/qt6/QtNetwork -I/usr/include/qt6/QtCore -I/usr/include/c++/16 -I/usr/include/c++/16/x86_64-pc-linux-gnu -I/usr/include/c++/16/backward -I/usr/lib/gcc/x86_64-pc-linux-gnu/16/include -I/usr/local/include -I/usr/include src/translator.h -o moc_translator.cpp
 
 moc_store.cpp: src/store.h \
 		moc_predefs.h \
 		/usr/lib/qt6/moc
-	/usr/lib/qt6/moc $(DEFINES) --include /home/h523034406/Work/vox/moc_predefs.h -I/usr/lib/qt6/mkspecs/linux-g++ -I/home/h523034406/Work/vox -I/usr/include/qt6 -I/usr/include/qt6/QtQuick -I/usr/include/qt6/QtOpenGL -I/usr/include/qt6/QtGui -I/usr/include/qt6/QtQml -I/usr/include/qt6/QtQmlIntegration -I/usr/include/qt6/QtNetwork -I/usr/include/qt6/QtCore -I/usr/include/c++/16 -I/usr/include/c++/16/x86_64-pc-linux-gnu -I/usr/include/c++/16/backward -I/usr/lib/gcc/x86_64-pc-linux-gnu/16/include -I/usr/local/include -I/usr/include src/store.h -o moc_store.cpp
+	/usr/lib/qt6/moc $(DEFINES) --include /home/h523034406/Work/vox/moc_predefs.h -I/usr/lib/qt6/mkspecs/linux-g++ -I/home/h523034406/Work/vox -I/usr/include/qt6 -I/usr/include/qt6/QtQuick -I/usr/include/qt6/QtOpenGL -I/usr/include/qt6/QtWidgets -I/usr/include/qt6/QtSvg -I/usr/include/qt6/QtGui -I/usr/include/qt6/QtQml -I/usr/include/qt6/QtQmlIntegration -I/usr/include/qt6/QtNetwork -I/usr/include/qt6/QtCore -I/usr/include/c++/16 -I/usr/include/c++/16/x86_64-pc-linux-gnu -I/usr/include/c++/16/backward -I/usr/lib/gcc/x86_64-pc-linux-gnu/16/include -I/usr/local/include -I/usr/include src/store.h -o moc_store.cpp
 
 moc_recorder.cpp: src/recorder.h \
 		moc_predefs.h \
 		/usr/lib/qt6/moc
-	/usr/lib/qt6/moc $(DEFINES) --include /home/h523034406/Work/vox/moc_predefs.h -I/usr/lib/qt6/mkspecs/linux-g++ -I/home/h523034406/Work/vox -I/usr/include/qt6 -I/usr/include/qt6/QtQuick -I/usr/include/qt6/QtOpenGL -I/usr/include/qt6/QtGui -I/usr/include/qt6/QtQml -I/usr/include/qt6/QtQmlIntegration -I/usr/include/qt6/QtNetwork -I/usr/include/qt6/QtCore -I/usr/include/c++/16 -I/usr/include/c++/16/x86_64-pc-linux-gnu -I/usr/include/c++/16/backward -I/usr/lib/gcc/x86_64-pc-linux-gnu/16/include -I/usr/local/include -I/usr/include src/recorder.h -o moc_recorder.cpp
+	/usr/lib/qt6/moc $(DEFINES) --include /home/h523034406/Work/vox/moc_predefs.h -I/usr/lib/qt6/mkspecs/linux-g++ -I/home/h523034406/Work/vox -I/usr/include/qt6 -I/usr/include/qt6/QtQuick -I/usr/include/qt6/QtOpenGL -I/usr/include/qt6/QtWidgets -I/usr/include/qt6/QtSvg -I/usr/include/qt6/QtGui -I/usr/include/qt6/QtQml -I/usr/include/qt6/QtQmlIntegration -I/usr/include/qt6/QtNetwork -I/usr/include/qt6/QtCore -I/usr/include/c++/16 -I/usr/include/c++/16/x86_64-pc-linux-gnu -I/usr/include/c++/16/backward -I/usr/lib/gcc/x86_64-pc-linux-gnu/16/include -I/usr/local/include -I/usr/include src/recorder.h -o moc_recorder.cpp
 
 moc_engine.cpp: src/engine.h \
 		moc_predefs.h \
 		/usr/lib/qt6/moc
-	/usr/lib/qt6/moc $(DEFINES) --include /home/h523034406/Work/vox/moc_predefs.h -I/usr/lib/qt6/mkspecs/linux-g++ -I/home/h523034406/Work/vox -I/usr/include/qt6 -I/usr/include/qt6/QtQuick -I/usr/include/qt6/QtOpenGL -I/usr/include/qt6/QtGui -I/usr/include/qt6/QtQml -I/usr/include/qt6/QtQmlIntegration -I/usr/include/qt6/QtNetwork -I/usr/include/qt6/QtCore -I/usr/include/c++/16 -I/usr/include/c++/16/x86_64-pc-linux-gnu -I/usr/include/c++/16/backward -I/usr/lib/gcc/x86_64-pc-linux-gnu/16/include -I/usr/local/include -I/usr/include src/engine.h -o moc_engine.cpp
+	/usr/lib/qt6/moc $(DEFINES) --include /home/h523034406/Work/vox/moc_predefs.h -I/usr/lib/qt6/mkspecs/linux-g++ -I/home/h523034406/Work/vox -I/usr/include/qt6 -I/usr/include/qt6/QtQuick -I/usr/include/qt6/QtOpenGL -I/usr/include/qt6/QtWidgets -I/usr/include/qt6/QtSvg -I/usr/include/qt6/QtGui -I/usr/include/qt6/QtQml -I/usr/include/qt6/QtQmlIntegration -I/usr/include/qt6/QtNetwork -I/usr/include/qt6/QtCore -I/usr/include/c++/16 -I/usr/include/c++/16/x86_64-pc-linux-gnu -I/usr/include/c++/16/backward -I/usr/lib/gcc/x86_64-pc-linux-gnu/16/include -I/usr/local/include -I/usr/include src/engine.h -o moc_engine.cpp
 
 moc_inserter.cpp: src/inserter.h \
 		moc_predefs.h \
 		/usr/lib/qt6/moc
-	/usr/lib/qt6/moc $(DEFINES) --include /home/h523034406/Work/vox/moc_predefs.h -I/usr/lib/qt6/mkspecs/linux-g++ -I/home/h523034406/Work/vox -I/usr/include/qt6 -I/usr/include/qt6/QtQuick -I/usr/include/qt6/QtOpenGL -I/usr/include/qt6/QtGui -I/usr/include/qt6/QtQml -I/usr/include/qt6/QtQmlIntegration -I/usr/include/qt6/QtNetwork -I/usr/include/qt6/QtCore -I/usr/include/c++/16 -I/usr/include/c++/16/x86_64-pc-linux-gnu -I/usr/include/c++/16/backward -I/usr/lib/gcc/x86_64-pc-linux-gnu/16/include -I/usr/local/include -I/usr/include src/inserter.h -o moc_inserter.cpp
+	/usr/lib/qt6/moc $(DEFINES) --include /home/h523034406/Work/vox/moc_predefs.h -I/usr/lib/qt6/mkspecs/linux-g++ -I/home/h523034406/Work/vox -I/usr/include/qt6 -I/usr/include/qt6/QtQuick -I/usr/include/qt6/QtOpenGL -I/usr/include/qt6/QtWidgets -I/usr/include/qt6/QtSvg -I/usr/include/qt6/QtGui -I/usr/include/qt6/QtQml -I/usr/include/qt6/QtQmlIntegration -I/usr/include/qt6/QtNetwork -I/usr/include/qt6/QtCore -I/usr/include/c++/16 -I/usr/include/c++/16/x86_64-pc-linux-gnu -I/usr/include/c++/16/backward -I/usr/lib/gcc/x86_64-pc-linux-gnu/16/include -I/usr/local/include -I/usr/include src/inserter.h -o moc_inserter.cpp
 
 moc_controlserver.cpp: src/controlserver.h \
 		moc_predefs.h \
 		/usr/lib/qt6/moc
-	/usr/lib/qt6/moc $(DEFINES) --include /home/h523034406/Work/vox/moc_predefs.h -I/usr/lib/qt6/mkspecs/linux-g++ -I/home/h523034406/Work/vox -I/usr/include/qt6 -I/usr/include/qt6/QtQuick -I/usr/include/qt6/QtOpenGL -I/usr/include/qt6/QtGui -I/usr/include/qt6/QtQml -I/usr/include/qt6/QtQmlIntegration -I/usr/include/qt6/QtNetwork -I/usr/include/qt6/QtCore -I/usr/include/c++/16 -I/usr/include/c++/16/x86_64-pc-linux-gnu -I/usr/include/c++/16/backward -I/usr/lib/gcc/x86_64-pc-linux-gnu/16/include -I/usr/local/include -I/usr/include src/controlserver.h -o moc_controlserver.cpp
+	/usr/lib/qt6/moc $(DEFINES) --include /home/h523034406/Work/vox/moc_predefs.h -I/usr/lib/qt6/mkspecs/linux-g++ -I/home/h523034406/Work/vox -I/usr/include/qt6 -I/usr/include/qt6/QtQuick -I/usr/include/qt6/QtOpenGL -I/usr/include/qt6/QtWidgets -I/usr/include/qt6/QtSvg -I/usr/include/qt6/QtGui -I/usr/include/qt6/QtQml -I/usr/include/qt6/QtQmlIntegration -I/usr/include/qt6/QtNetwork -I/usr/include/qt6/QtCore -I/usr/include/c++/16 -I/usr/include/c++/16/x86_64-pc-linux-gnu -I/usr/include/c++/16/backward -I/usr/lib/gcc/x86_64-pc-linux-gnu/16/include -I/usr/local/include -I/usr/include src/controlserver.h -o moc_controlserver.cpp
 
 moc_statusreporter.cpp: src/statusreporter.h \
 		moc_predefs.h \
 		/usr/lib/qt6/moc
-	/usr/lib/qt6/moc $(DEFINES) --include /home/h523034406/Work/vox/moc_predefs.h -I/usr/lib/qt6/mkspecs/linux-g++ -I/home/h523034406/Work/vox -I/usr/include/qt6 -I/usr/include/qt6/QtQuick -I/usr/include/qt6/QtOpenGL -I/usr/include/qt6/QtGui -I/usr/include/qt6/QtQml -I/usr/include/qt6/QtQmlIntegration -I/usr/include/qt6/QtNetwork -I/usr/include/qt6/QtCore -I/usr/include/c++/16 -I/usr/include/c++/16/x86_64-pc-linux-gnu -I/usr/include/c++/16/backward -I/usr/lib/gcc/x86_64-pc-linux-gnu/16/include -I/usr/local/include -I/usr/include src/statusreporter.h -o moc_statusreporter.cpp
+	/usr/lib/qt6/moc $(DEFINES) --include /home/h523034406/Work/vox/moc_predefs.h -I/usr/lib/qt6/mkspecs/linux-g++ -I/home/h523034406/Work/vox -I/usr/include/qt6 -I/usr/include/qt6/QtQuick -I/usr/include/qt6/QtOpenGL -I/usr/include/qt6/QtWidgets -I/usr/include/qt6/QtSvg -I/usr/include/qt6/QtGui -I/usr/include/qt6/QtQml -I/usr/include/qt6/QtQmlIntegration -I/usr/include/qt6/QtNetwork -I/usr/include/qt6/QtCore -I/usr/include/c++/16 -I/usr/include/c++/16/x86_64-pc-linux-gnu -I/usr/include/c++/16/backward -I/usr/lib/gcc/x86_64-pc-linux-gnu/16/include -I/usr/local/include -I/usr/include src/statusreporter.h -o moc_statusreporter.cpp
+
+moc_trayicon.cpp: src/trayicon.h \
+		moc_predefs.h \
+		/usr/lib/qt6/moc
+	/usr/lib/qt6/moc $(DEFINES) --include /home/h523034406/Work/vox/moc_predefs.h -I/usr/lib/qt6/mkspecs/linux-g++ -I/home/h523034406/Work/vox -I/usr/include/qt6 -I/usr/include/qt6/QtQuick -I/usr/include/qt6/QtOpenGL -I/usr/include/qt6/QtWidgets -I/usr/include/qt6/QtSvg -I/usr/include/qt6/QtGui -I/usr/include/qt6/QtQml -I/usr/include/qt6/QtQmlIntegration -I/usr/include/qt6/QtNetwork -I/usr/include/qt6/QtCore -I/usr/include/c++/16 -I/usr/include/c++/16/x86_64-pc-linux-gnu -I/usr/include/c++/16/backward -I/usr/lib/gcc/x86_64-pc-linux-gnu/16/include -I/usr/local/include -I/usr/include src/trayicon.h -o moc_trayicon.cpp
 
 compiler_moc_objc_header_make_all:
 compiler_moc_objc_header_clean:
 compiler_moc_source_make_all:
 compiler_moc_source_clean:
+compiler_uic_make_all:
+compiler_uic_clean:
 compiler_yacc_decl_make_all:
 compiler_yacc_decl_clean:
 compiler_yacc_impl_make_all:
@@ -952,7 +973,8 @@ main.o: src/main.cpp src/backend.h \
 		src/statusreporter.h \
 		src/store.h \
 		src/theme.h \
-		src/translator.h
+		src/translator.h \
+		src/trayicon.h
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o main.o src/main.cpp
 
 backend.o: src/backend.cpp src/backend.h \
@@ -993,6 +1015,10 @@ statusreporter.o: src/statusreporter.cpp src/statusreporter.h \
 		src/store.h
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o statusreporter.o src/statusreporter.cpp
 
+trayicon.o: src/trayicon.cpp src/trayicon.h \
+		src/backend.h
+	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o trayicon.o src/trayicon.cpp
+
 qrc_resources.o: qrc_resources.cpp 
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o qrc_resources.o qrc_resources.cpp
 
@@ -1022,6 +1048,9 @@ moc_controlserver.o: moc_controlserver.cpp
 
 moc_statusreporter.o: moc_statusreporter.cpp 
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o moc_statusreporter.o moc_statusreporter.cpp
+
+moc_trayicon.o: moc_trayicon.cpp 
+	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o moc_trayicon.o moc_trayicon.cpp
 
 ####### Install
 
