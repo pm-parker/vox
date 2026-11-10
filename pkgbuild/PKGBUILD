@@ -1,6 +1,6 @@
 pkgname=vox
 pkgver=1.1.0
-pkgrel=1
+pkgrel=2
 pkgdesc='Voice input for Omarchy — offline dictation into any window'
 arch=('x86_64' 'aarch64')
 license=('MIT')
@@ -31,6 +31,10 @@ package() {
   # Official Omarchy dictation adapter: `omarchy dictation use vox` wires
   # Alt+Space toggle and hold-Alt_R push-to-talk to this binary.
   install -Dm755 "$startdir/omarchy-dictation-vox" "$pkgdir/usr/bin/omarchy-dictation-vox"
+  # Setup-menu install/remove hooks: omarchy default dictation vox requires
+  # omarchy-install-dictation-vox to exist, and remove-dictation pairs with it.
+  install -Dm755 "$startdir/omarchy-install-dictation-vox" "$pkgdir/usr/bin/omarchy-install-dictation-vox"
+  install -Dm755 "$startdir/omarchy-remove-dictation-vox" "$pkgdir/usr/bin/omarchy-remove-dictation-vox"
   # sherpa-onnx-offline, pulled out of the upstream static release.
   local bin
   bin=$(find "$srcdir" -type f -name sherpa-onnx-offline -perm -u+x | head -1)

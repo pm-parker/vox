@@ -1,0 +1,24 @@
+#!/bin/bash
+
+# omarchy:summary=Set up vox offline dictation
+# omarchy:args=[--background]
+
+set -e
+
+background=false
+if [[ ${1:-} == "--background" ]]; then
+  background=true
+elif (($# > 0)); then
+  echo "Usage: omarchy install dictation vox [--background]" >&2
+  exit 1
+fi
+
+# The package already ships the app, the recognition engine and the dictation
+# adapter, so switching is pure backend selection. The SenseVoice model
+# (~163 MB) downloads automatically on first use.
+omarchy-dictation-use vox
+omarchy-restart-hyprctl
+
+if [[ $background == "false" ]]; then
+  omarchy-notification-send -g "" "vox dictation ready" "Hold Alt_R to talk, release to insert." -t 10000
+fi
