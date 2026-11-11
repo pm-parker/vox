@@ -23,8 +23,10 @@ ApplicationWindow {
     readonly property color dim: "#8A8A8A"
     readonly property color good: "#30D158"
     readonly property color bad: "#FF453A"
-    readonly property color accent: Theme.accent
-    readonly property color accentFg: Theme.accentForeground
+    // Brand yellow while the signature mode is on; the live Omarchy theme
+    // accent otherwise. One switch, every chrome surface follows.
+    readonly property color accent: Settings.duckYellow ? Theme.brand : Theme.accent
+    readonly property color accentFg: Settings.duckYellow ? Theme.brandForeground : Theme.accentForeground
     readonly property real rad: Math.min(Theme.radius > 0 ? Theme.radius : 12, 14)
 
     readonly property bool listening: Backend.state === "listening"

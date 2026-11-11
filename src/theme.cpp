@@ -73,9 +73,18 @@ QString Theme::readAccent(const QString &path) {
     return "#FFD60A";
 }
 
-// Black or white, whichever reads on the accent (WCAG relative luminance).
+// Black or white, whichever reads on the given background (WCAG relative
+// luminance); works for both the theme accent and the brand yellow.
 QString Theme::accentForeground() const {
-    const QColor c(accent());
+    return foregroundFor(accent());
+}
+
+QString Theme::brandForeground() const {
+    return foregroundFor(brand());
+}
+
+QString Theme::foregroundFor(const QString &background) {
+    const QColor c(background);
     auto linear = [](double v) { return v <= .04045 ? v / 12.92 : std::pow((v + .055) / 1.055, 2.4); };
     const double luminance = .2126 * linear(c.redF()) + .7152 * linear(c.greenF()) + .0722 * linear(c.blueF());
     return luminance > .179 ? "black" : "white";

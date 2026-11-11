@@ -6,6 +6,7 @@ mkdir -p "$ROOT/build"
 cd "$ROOT/build"
 
 qmake6 "$ROOT/vox.pro"
+python3 "$ROOT/tools/patch_cdb.py" "$PWD"
 make -j"$(nproc)"
 
 echo "Built $ROOT/build/vox"

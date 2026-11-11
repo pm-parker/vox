@@ -44,6 +44,10 @@ What it gets you:
 - **Follows your theme.** Accent color and corner radius come from the live
   Omarchy theme (`omarchy-theme` and Hyprland's effective rounding). Change the
   theme and duckvox changes with it — no restart.
+- **Duck yellow, or your theme.** The signature `#FFD338` can take over the
+  chrome as a brand mode (on by default). Switch it off in Settings ▸ Appearance
+  and every accent falls back to the live Omarchy theme color — verified against
+  a blue test theme, not assumed.
 - **Speaks your language.** The UI follows Omarchy's chosen language; English
   and Chinese catalogs ship in the box.
 - **Bar panel.** A microphone icon in the Omarchy bar shows idle / listening /
@@ -87,7 +91,7 @@ The pieces, and why each is shaped the way it is:
 | `src/inserter.cpp` | Types the text with `wtype -s 1000` (slow enough for apps to keep up), falls back to `wl-copy`. |
 | `src/backend.cpp` | The state machine the UI binds to: idle → listening → processing → done, plus history and errors. |
 | `src/controlserver.cpp` | A small newline-JSON socket, so `duckvox --hold-start` reaches the already-running daemon. |
-| `src/theme.cpp` | Reads the Omarchy theme directory and Hyprland rounding, re-reading on change. |
+| `src/theme.cpp` | Reads the Omarchy theme directory and Hyprland rounding, re-reading on change. Brand yellow is exposed separately as `brand`, so `duckYellow` never overrides the theme accent. |
 
 Two design decisions worth calling out:
 

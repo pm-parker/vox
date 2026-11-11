@@ -22,13 +22,13 @@
 #include <functional>
 #include <iostream>
 
-#include "backend.h"
-#include "engine.h"
-#include "inserter.h"
-#include "recorder.h"
-#include "store.h"
-#include "theme.h"
-#include "translator.h"
+#include "../src/backend.h"
+#include "../src/engine.h"
+#include "../src/inserter.h"
+#include "../src/recorder.h"
+#include "../src/store.h"
+#include "../src/theme.h"
+#include "../src/translator.h"
 
 namespace {
 
@@ -84,7 +84,10 @@ int main(int argc, char *argv[]) {
     auto *recorder = new Recorder(dataDir + "/takes", &app);
     auto *inserter = new Inserter(&app);
     auto *backend = new Backend(store, engine, recorder, inserter, &app);
-    auto *theme = new Theme({}, &app);
+    // Theme dir is optional (argv[4]) so the tool can render an arbitrary
+    // theme instead of the live one; empty = the real Omarchy state dir.
+    const QString themeDir = argc > 4 ? QString::fromLocal8Bit(argv[4]) : QString();
+    auto *theme = new Theme(themeDir, &app);
     auto *translator = new Translator({}, ":/i18n", &app);
 
     qmlRegisterSingletonInstance("Vox", 1, 0, "Backend", backend);

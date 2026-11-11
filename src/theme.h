@@ -9,17 +9,24 @@ class Theme : public QObject {
     Q_OBJECT
     Q_PROPERTY(QString accent READ accent NOTIFY changed)
     Q_PROPERTY(QString accentForeground READ accentForeground NOTIFY changed)
+    // Brand yellow, kept separate from the theme accent so the app still
+    // follows Omarchy's live theme underneath. QML picks brand while
+    // duckYellow is on, and falls back to the theme accent when it is off.
+    Q_PROPERTY(QString brand READ brand NOTIFY changed)
+    Q_PROPERTY(QString brandForeground READ brandForeground NOTIFY changed)
     Q_PROPERTY(int radius READ radius NOTIFY changed)
-    // Brand mode: the duck-yellow signature stays on regardless of the
-    // Omarchy theme. Off = follow the live theme like every other app.
+    // Signature mode: the duck-yellow brand colour is used for chrome.
+    // Off = follow the live Omarchy theme like every other app.
     Q_PROPERTY(bool duckYellow READ duckYellow WRITE setDuckYellow NOTIFY changed)
 
 public:
     explicit Theme(const QString &currentDirectory = {}, QObject *parent = nullptr, const QString &hyprctl = {});
     ~Theme() override;
 
-    QString accent() const { return m_duckYellow ? QStringLiteral("#FFD338") : m_accent; }
+    QString accent() const { return m_accent; }
     QString accentForeground() const;
+    QString brand() const { return QStringLiteral("#FFD338"); }
+    QString brandForeground() const;
     int radius() const { return m_radius; }
     bool duckYellow() const { return m_duckYellow; }
     void setDuckYellow(bool on);
@@ -32,6 +39,7 @@ signals:
 private:
     void reload();
     void refreshRounding();
+    static QString foregroundFor(const QString &background);
 
     QString m_directory;
     QString m_accent = "#FFD60A";
