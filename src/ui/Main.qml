@@ -949,6 +949,12 @@ ApplicationWindow {
                         required property int index
                         required property var modelData
                         entry: modelData
+                        // HistoryRow's Layout.fillWidth only works under the
+                        // Dictate page's ColumnLayout. A ListView host ignores
+                        // layout attachments, so without an explicit width the
+                        // row shrinks to its content and the timestamp lands
+                        // right next to the text.
+                        width: historyList.width
                         onActivate: Backend.useHistoryText(index)
                     }
                 }
