@@ -152,6 +152,18 @@ int main(int argc, char *argv[]) {
             break;
         case 5:
             shoot("05-settings");
+            // Scroll to the bottom of the settings list: the cards below the
+            // fold (model, shortcuts) must be reachable, not clipped away.
+            if (auto *root = g_qml->rootObjects().value(0))
+                root->setProperty("scrollToEnd", true);
+            break;
+        case 6:
+            shoot("06-settings-bottom");
+            if (auto *root = g_qml->rootObjects().value(0))
+                root->setProperty("page", 2);
+            break;
+        case 7:
+            shoot("07-history");
             QGuiApplication::quit();
             break;
         }

@@ -1,12 +1,12 @@
 ---@diagnostic disable: undefined-global
--- DuckVox: a 430x940 utility window. Tiled, the 720-tall screen clamps it to
--- ~328 px - the settings list then scrolls in a slit and looks half-broken.
--- Omarchy loads every file in default/hypr/apps, so this floats it full-size
--- near the top-right (the pip.lua pattern: tag, then a tag rule).
+-- DuckVox is a 440-wide utility panel that sizes itself (it clamps its own
+-- height to the screen). Omarchy loads every file in default/hypr/apps.
+-- Deliberately NO `size` here: an explicit 430x940 used to override the
+-- window's own geometry and Hyprland then stretched it over the full screen
+-- height, which buried the settings list.
 o.window({ class = "duckvox$" }, { tag = "+duckvox" })
 o.window({ tag = "duckvox" }, {
   float = true,
-  size = { 430, 940 },
-  move = { "(monitor_w-w-40)", "(monitor_h*0.04)" },
+  move = { "(monitor_w-w-24)", "(monitor_h*0.16)" },
   no_initial_focus = true, -- hotkey-first app: never steal focus at autostart
 })

@@ -196,6 +196,29 @@ frame in each state. Speech is real: a PATH shim makes the recorder read a WAV
 instead of the microphone, so VAD, recognition and the text pipeline all run for
 real. See the header comment in that file for how to run it.
 
+## Changelog notes -- 2.2.0, the panel-sized release
+
+Three layout complaints, one root cause each.
+
+- **The window stopped filling the screen.** The Hyprland rule shipped a
+  hardcoded `size = {430, 940}`. On a 720-tall desktop that got stretched over
+  the whole display, which is what made the settings page look broken. The rule
+  now only floats the window; DuckVox sizes itself
+  (`min(620, max(480, Screen.height - 200))` -- 440x520 on this machine).
+- **Settings scroll.** Both tabs were `ScrollView`s wrapping a `ColumnLayout`,
+  and a ScrollView takes its content height from the layout's *preferred*
+  height, which collapses to the viewport -- so there was nothing to scroll.
+  They are plain `Flickable`s now with `contentHeight: body.implicitHeight`.
+- **The dictate page uses its space.** The mic block absorbs the vertical slack
+  and centres itself instead of hugging the top with dead black underneath; the
+  empty-state hint sits under the mic. History stays at three recent rows with
+  an `All N ->` jump to its own tab.
+- **Denser settings.** Card padding 10->8, spacing 7->6, row labels 13->12 px.
+
+`tools/relink-shots` rebuilds the app and relinks the screenshot harness against
+fresh objects: linking against a stale `qrc_resources.o` renders the *previous*
+QML, a trap that produced two false "the fix didn't work" conclusions.
+
 ## License
 
 MIT.

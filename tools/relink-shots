@@ -1,0 +1,17 @@
+#!/bin/bash
+# Rebuild the app, then relink the screenshot harness against the FRESH
+# object files. Linking against stale qrc_resources.o renders the previous
+# QML — that trap has produced false "fix didn't work" conclusions before.
+set -euo pipefail
+cd "$(dirname "$0")/.."
+
+make -j"$(nproc)" 2>&1 | grep -iE "(^| )(error|Error) " && { echo "build failed"; exit 1; } || true
+
+Q=$(pkg-config --cflags Qt6Quick Qt6OpenGL Qt6Gui Qt6Qml Qt6Network Qt6Core)
+g++ -c -pipe -O2 -std=gnu++17 -fPIC -Wall -Wextra -D_REENTRANT -DQT_NO_DEBUG \
+  -I. -Isrc $Q -o /tmp/sw.o tools/screenshot_window.cpp
+g++ -Wl,-O1 -Wl,-rpath,/usr/lib -o tools/screenshot_window /tmp/sw.o \
+  $(ls *.o | grep -v '^main\.o$') \
+  $(pkg-config --libs Qt6Quick Qt6OpenGL Qt6Widgets Qt6Svg Qt6Gui Qt6Qml Qt6Network Qt6Core) \
+  -lGLX -lOpenGL -lpthread
+echo "relinked tools/screenshot_window"
