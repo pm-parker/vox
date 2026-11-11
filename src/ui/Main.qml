@@ -158,12 +158,22 @@ ApplicationWindow {
         id: row
         required property var entry
         signal activate()
+        readonly property bool hasDelta: entry.delta !== undefined && entry.delta !== "" && entry.delta !== entry.text
         Layout.fillWidth: true
         implicitHeight: 40
         radius: root.rad
         color: rowMouse.containsMouse ? root.surfaceUp : "transparent"
         border.color: root.line
         border.width: 1
+        // First child so the row below stays hoverable/clickable; the inner
+        // widgets sit on top and handle their own clicks.
+        MouseArea {
+            id: rowMouse
+            anchors.fill: parent
+            hoverEnabled: true
+            cursorShape: Qt.PointingHandCursor
+            onClicked: row.activate()
+        }
         RowLayout {
             anchors.fill: parent
             anchors.leftMargin: 10
@@ -178,19 +188,60 @@ ApplicationWindow {
                 maximumLineCount: 1
                 verticalAlignment: Text.AlignVCenter
             }
+            // Per-item delta chip: what this take appended to the previous
+            // one. Older entries (pre-2.2.2) have no delta and hide the chip.
+            Rectangle {
+                visible: row.hasDelta
+                Layout.maximumWidth: Math.round(row.width * 0.42)
+                implicitWidth: deltaText.implicitWidth + 14
+                implicitHeight: 22
+                radius: 11
+                color: Qt.rgba(root.accent.r, root.accent.g, root.accent.b, 0.14)
+                Label {
+                    id: deltaText
+                    anchors.fill: parent
+                    anchors.leftMargin: 7
+                    anchors.rightMargin: 7
+                    text: "+ " + (row.entry.delta || "")
+                    color: root.accent
+                    font.pixelSize: 10
+                    elide: Text.ElideRight
+                    verticalAlignment: Text.AlignVCenter
+                }
+            }
             Label {
                 text: Qt.formatDateTime(new Date(row.entry.at * 1000), "MM-dd hh:mm")
                 color: root.dim
                 font.pixelSize: 10
                 verticalAlignment: Text.AlignVCenter
             }
-        }
-        MouseArea {
-            id: rowMouse
-            anchors.fill: parent
-            hoverEnabled: true
-            cursorShape: Qt.PointingHandCursor
-            onClicked: row.activate()
+            Item {
+                visible: row.hasDelta
+                Layout.preferredWidth: 26
+                Layout.preferredHeight: 22
+                Rectangle {
+                    anchors.fill: parent
+                    radius: 11
+                    color: copyNewMouse.containsMouse ? Qt.rgba(root.accent.r, root.accent.g, root.accent.b, 0.18) : "transparent"
+                    border.color: copyNewMouse.containsMouse ? root.accent : root.line
+                    border.width: 1
+                }
+                Label {
+                    anchors.centerIn: parent
+                    text: "\u29C9"
+                    color: copyNewMouse.containsMouse ? root.accent : root.dim
+                    font.pixelSize: 12
+                }
+                MouseArea {
+                    id: copyNewMouse
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: Backend.copyText(row.entry.delta || row.entry.text)
+                }
+                Accessible.role: Accessible.Button
+                Accessible.name: qsTr("Copy the new part")
+            }
         }
     }
 

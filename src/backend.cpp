@@ -127,7 +127,7 @@ void Backend::insertAndReport(const QString &text) {
             emit errorChanged();
         }
     } else {
-        m_statusLine = tr("Ready — press R to insert, C to copy");
+        m_statusLine = tr("Ready — press R to insert, C to copy the new part");
     }
     emit statusChanged();
 }
@@ -139,9 +139,35 @@ void Backend::repeatLast() {
 }
 
 void Backend::copyLast() {
-    if (m_lastText.isEmpty())
+    // C copies only the DELTA of the latest take (what it appended to the
+    // previous text). Full text stays available via R and via history.
+    const QString text = deltaOf(m_lastText);
+    if (text.isEmpty())
         return;
-    if (m_inserter->insert(m_lastText, "clipboard"))
+    if (m_inserter->insert(text, "clipboard"))
+        m_statusLine = tr("Copied the new part to the clipboard");
+    else {
+        m_statusLine.clear();
+        m_errorText = tr("Could not insert: wtype and wl-copy both failed. The text is kept here.");
+        emit errorChanged();
+    }
+    emit statusChanged();
+}
+
+QString Backend::deltaOf(const QString &text) const {
+    const QVariantList items = m_store->history();
+    for (const QVariant &v : items) {
+        const QVariantMap item = v.toMap();
+        if (item.value("text").toString() == text)
+            return item.value("delta").toString();
+    }
+    return text;
+}
+
+void Backend::copyText(const QString &text) {
+    if (text.isEmpty())
+        return;
+    if (m_inserter->insert(text, "clipboard"))
         m_statusLine = tr("Copied to the clipboard");
     else {
         m_statusLine.clear();

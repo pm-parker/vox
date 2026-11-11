@@ -12,3 +12,5 @@ pkgbuild/*.tar.bz2
 pkgbuild/*.tar.gz
 tools/screenshot_window
 duckvox
+tools/pcm/
+tools/data/

@@ -189,8 +189,19 @@ QString Store::applyDictionary(const QString &text) const {
 QVariantList Store::history() const { return m_history; }
 
 void Store::addHistory(const QString &text) {
+    // Per-item delta: what this take ADDS on top of the previous one. When
+    // the take starts with the previous text (progressive writing), the
+    // delta is just the appended tail; when the beginning changed, the
+    // whole take is the delta, so the user can paste over the stale text.
+    QString delta = text;
+    if (!m_history.isEmpty()) {
+        const QString prev = m_history.first().toMap().value("text").toString();
+        if (!prev.isEmpty() && text.startsWith(prev) && text.size() > prev.size())
+            delta = text.mid(prev.size()).trimmed();
+    }
     QVariantMap item;
     item.insert("text", text);
+    item.insert("delta", delta);
     item.insert("at", QDateTime::currentDateTime().toSecsSinceEpoch());
     QVariantList items;
     items.append(item);

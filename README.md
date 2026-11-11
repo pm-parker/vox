@@ -163,7 +163,7 @@ of it, and is what the Omarchy adapter drives.
 | `duckvox --status` | Print the daemon's state and exit non-zero if it is not running |
 | `duckvox --toggle` | Start / stop tap-to-dictate |
 | `duckvox --hold-start` / `--hold-stop` | Push-to-talk begin / end |
-| `duckvox --copy-last` | Copy the last transcript |
+| `duckvox --copy-last` | Copy the last transcript's **new part** (what it appended to the previous take) |
 | `duckvox --show` / `--minimized` | Show the window / run windowless as the daemon |
 
 ## Building from source
@@ -195,6 +195,24 @@ Recognition notes, for anyone comparing against other SenseVoice builds:
 frame in each state. Speech is real: a PATH shim makes the recorder read a WAV
 instead of the microphone, so VAD, recognition and the text pipeline all run for
 real. See the header comment in that file for how to run it.
+
+## Changelog notes -- 2.2.2, history that remembers what is new
+
+Dictating onto an already-written text ("……出去玩吧" appended to "今天天气不错")
+used to leave no trace of what the take *added*: C copied the whole thing, and
+history only kept full texts. Now every entry stores its **delta** -- the part
+appended to the previous take (trimmed); a take that rewrites the beginning
+stores the whole text as its delta, so pasting it over the stale text still
+works. Three surfaces expose it:
+
+- **C copies only the new part** of the latest take (R still inserts the full
+  text). The status line says so.
+- **History rows show the delta** as an accent chip ("+ ，我们出去玩吧") with a
+  one-click copy button just for it. The first take of a chain (nothing to
+  diff against, or an identical re-take) and rows saved by older versions show
+  no chip.
+- `duckvox --copy-last` copies the delta too; the in-window **Insert** button
+  and R still handle the full text.
 
 ## Changelog notes -- 2.2.0, the panel-sized release
 

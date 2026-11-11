@@ -60,6 +60,12 @@ public:
     Q_INVOKABLE void holdStop();
     Q_INVOKABLE void repeatLast();
     Q_INVOKABLE void copyLast();
+    // The per-item delta for a take (what it appended to the previous
+    // history text); falls back to the full text when unknown. Backs the
+    // C shortcut and the per-row "copy new part" button.
+    Q_INVOKABLE QString deltaOf(const QString &text) const;
+    // Copy arbitrary text to the clipboard (per-row "copy new part").
+    Q_INVOKABLE void copyText(const QString &text);
     Q_INVOKABLE void useHistoryText(int index);
     Q_INVOKABLE void dismissError();
     Q_INVOKABLE void clearHistory();
