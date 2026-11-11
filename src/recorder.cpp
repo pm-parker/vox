@@ -97,7 +97,14 @@ bool Recorder::start(int gapMs, int waitFirstMs, int maxMs, bool autoStop, float
 }
 
 bool Recorder::spawnCapture() {
-    QStringList parecArgs{"--raw", "--format=s16", "--rate=16000", "--channels=1"};
+    QStringList parecArgs{"--raw", "--format=s16", "--rate=16000", "--channels=1",
+                          // Ask for small, timely packets. Without these, parec
+                          // buffers ~2 s of audio before the first byte arrives
+                          // (measured: 64000 B at t=2.03 s), so the endpointer
+                          // only ever saw 2-second-old audio and cut takes in
+                          // the middle of ongoing speech. 40 ms chunks give
+                          // the VAD near-real-time input instead.
+                          "--latency-msec=40", "--process-time-msec=40"};
     if (!m_activeSource.isEmpty())
         parecArgs << ("--device=" + m_activeSource);
     m_capture.start("parec", parecArgs);
