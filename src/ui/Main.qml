@@ -159,7 +159,7 @@ ApplicationWindow {
         required property var entry
         signal activate()
         Layout.fillWidth: true
-        implicitHeight: 38
+        implicitHeight: 40
         radius: root.rad
         color: rowMouse.containsMouse ? root.surfaceUp : "transparent"
         border.color: root.line
@@ -176,11 +176,13 @@ ApplicationWindow {
                 font.pixelSize: 12
                 elide: Text.ElideRight
                 maximumLineCount: 1
+                verticalAlignment: Text.AlignVCenter
             }
             Label {
                 text: Qt.formatDateTime(new Date(row.entry.at * 1000), "MM-dd hh:mm")
                 color: root.dim
                 font.pixelSize: 10
+                verticalAlignment: Text.AlignVCenter
             }
         }
         MouseArea {
@@ -316,21 +318,27 @@ ApplicationWindow {
                                 color: root.listening ? root.bad : (root.processing ? root.surfaceUp : root.accent)
                                 border.width: 0
                             }
-                            contentItem: Row {
-                                anchors.centerIn: parent
-                                spacing: 4
-                                Repeater {
-                                    model: [0.5, 0.9, 1.0, 0.8, 0.55]
-                                    Rectangle {
-                                        required property real modelData
-                                        width: 5
-                                        radius: 2.5
-                                        color: root.listening ? "#FFFFFF"
-                                              : root.processing ? root.dim : root.accentFg
-                                        height: root.listening
-                                                ? 7 + 38 * Backend.level * modelData
-                                                : (root.processing ? 9 : 30 * modelData)
-                                        Behavior on height { NumberAnimation { duration: 90 } }
+                            contentItem: Item {
+                                // A Button assigns its contentItem geometry; anchors
+                                // fight that and the row drifts to the top-left.
+                                // Centre the bars through a filling Item instead.
+                                Row {
+                                    anchors.centerIn: parent
+                                    spacing: 4
+                                    Repeater {
+                                        model: [0.5, 0.9, 1.0, 0.8, 0.55]
+                                        Rectangle {
+                                            required property real modelData
+                                            width: 5
+                                            radius: 2.5
+                                            anchors.verticalCenter: parent.verticalCenter
+                                            color: root.listening ? "#FFFFFF"
+                                                  : root.processing ? root.dim : root.accentFg
+                                            height: root.listening
+                                                    ? 7 + 38 * Backend.level * modelData
+                                                    : (root.processing ? 9 : 30 * modelData)
+                                            Behavior on height { NumberAnimation { duration: 90 } }
+                                        }
                                     }
                                 }
                             }
