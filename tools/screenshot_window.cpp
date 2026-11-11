@@ -98,7 +98,7 @@ int main(int argc, char *argv[]) {
             forced = QSize(wh[0].toInt(), wh[1].toInt());
     }
     auto *theme = new Theme(themeDir, &app);
-    auto *translator = new Translator({}, ":/i18n", &app);
+    auto *translator = new Translator({}, ":/duckvox/i18n", &app);
     // Same as the daemon: without installTranslator the catalog never
     // answers qsTr() and every README shot renders English regardless of
     // the desktop language.
@@ -159,11 +159,17 @@ int main(int argc, char *argv[]) {
             break;
         case 6:
             shoot("06-settings-bottom");
+            // Mid-scroll pass for the Interface-language card.
+            if (auto *root = g_qml->rootObjects().value(0))
+                root->setProperty("scrollToLanguage", true);
+            break;
+        case 7:
+            shoot("07-language");
             if (auto *root = g_qml->rootObjects().value(0))
                 root->setProperty("page", 2);
             break;
-        case 7:
-            shoot("07-history");
+        case 8:
+            shoot("08-history");
             QGuiApplication::quit();
             break;
         }

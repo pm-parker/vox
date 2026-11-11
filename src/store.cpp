@@ -125,6 +125,10 @@ bool Store::duckYellow() const { return m_settings.value("duckYellow", true).toB
 
 void Store::setDuckYellow(bool on) { setSetting("duckYellow", on); }
 
+QString Store::uiLanguage() const { return m_settings.value("uiLanguage", "auto").toString(); }
+
+void Store::setUiLanguage(const QString &uiLanguage) { setSetting("uiLanguage", uiLanguage); }
+
 QVariantList Store::dictionary() const { return m_dictionary; }
 
 void Store::setDictionary(const QVariantList &pairs) {

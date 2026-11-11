@@ -36,6 +36,9 @@ class Store : public QObject {
     // Brand color: duck yellow regardless of the Omarchy theme. Off = follow
     // the live theme accent like every other Omarchy app.
     Q_PROPERTY(bool duckYellow READ duckYellow WRITE setDuckYellow NOTIFY settingsChanged)
+    // Window/UI language: auto (follow Omarchy's language) | en | zh-CN.
+    // Separate from `language`, which is the recognition language.
+    Q_PROPERTY(QString uiLanguage READ uiLanguage WRITE setUiLanguage NOTIFY settingsChanged)
 
 public:
     explicit Store(const QString &directory = {}, QObject *parent = nullptr);
@@ -72,6 +75,8 @@ public:
     void setShortcuts(const QJsonObject &keys);
     bool duckYellow() const;
     void setDuckYellow(bool on);
+    QString uiLanguage() const;
+    void setUiLanguage(const QString &uiLanguage);
 
     // --- dictionary ---
     QVariantList dictionary() const;

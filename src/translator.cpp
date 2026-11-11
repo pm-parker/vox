@@ -21,6 +21,17 @@ Translator::Translator(const QString &languageFile, const QString &catalogDirect
     reload();
 }
 
+// The override wins unless it is "auto"; "zh" is accepted as an alias for
+// the catalog's zh-CN.
+void Translator::setOverride(const QString &override) {
+    const QString normalized = override == QLatin1String("zh") ? QStringLiteral("zh-CN") : override;
+    if (normalized != m_override) {
+        m_override = normalized.isEmpty() ? QStringLiteral("auto") : normalized;
+        emit changed();
+        reload();
+    }
+}
+
 // One registry code on the first line; anything else, or no file, is English.
 QString Translator::readLanguage(const QString &path) {
     QFile file(path);
@@ -106,7 +117,8 @@ void Translator::reload() {
         m_watcher.addPath(m_languageFile);
 
     // Catalogs are compiled in, so only a different language needs a reload.
-    const QString language = readLanguage(m_languageFile);
+    // The in-app override (Store::uiLanguage) beats Omarchy's language file.
+    QString language = m_override == QLatin1String("auto") ? readLanguage(m_languageFile) : m_override;
     if (language == m_language)
         return;
 

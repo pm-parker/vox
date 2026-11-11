@@ -16,12 +16,18 @@
 class Translator : public QTranslator {
     Q_OBJECT
     Q_PROPERTY(QString language READ language NOTIFY changed)
+    // In-app UI-language override: "auto" follows Omarchy's language file;
+    // "en" or "zh-CN" wins over it. Bound to Store::uiLanguage from main()
+    // so the Settings card switches the window live.
+    Q_PROPERTY(QString override READ override WRITE setOverride NOTIFY changed)
 
 public:
-    explicit Translator(const QString &languageFile = {}, const QString &catalogDirectory = ":/i18n",
+    explicit Translator(const QString &languageFile = {}, const QString &catalogDirectory = ":/duckvox/i18n",
                         QObject *parent = nullptr);
 
     QString language() const { return m_language; }
+    QString override() const { return m_override; }
+    void setOverride(const QString &override);
     bool isEmpty() const override { return m_strings.isEmpty(); }
     QString translate(const char *context, const char *sourceText, const char *disambiguation = nullptr,
                       int n = -1) const override;
@@ -39,6 +45,7 @@ private:
     QString m_languageFile;
     QString m_catalogDirectory;
     QString m_language;
+    QString m_override = QStringLiteral("auto");
     QHash<QString, QJsonValue> m_strings;
     QFileSystemWatcher m_watcher;
     QTimer m_debounce;

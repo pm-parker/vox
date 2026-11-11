@@ -225,7 +225,7 @@ int main(int argc, char *argv[]) {
     // language catalog silently resolved to English and the theme only worked
     // through its built-in fallback.
     auto *theme = new Theme({}, &app);
-    auto *translator = new Translator({}, ":/i18n", &app);
+    auto *translator = new Translator({}, ":/duckvox/i18n", &app);
     // Actually install it: a QTranslator registered only as a QML singleton
     // never answers qsTr(), so every label silently stayed English no matter
     // what Omarchy's language file said. Later language changes retranslate
@@ -238,6 +238,13 @@ int main(int argc, char *argv[]) {
     theme->setDuckYellow(store->duckYellow());
     QObject::connect(store, &Store::settingsChanged, theme, [store, theme] {
         theme->setDuckYellow(store->duckYellow());
+    });
+    // UI language: the Settings card writes Store::uiLanguage; the translator
+    // applies it live (override beats Omarchy's language file, "auto" =
+    // follow the desktop). Set before QML loads so the first paint is right.
+    translator->setOverride(store->uiLanguage());
+    QObject::connect(store, &Store::settingsChanged, translator, [store, translator] {
+        translator->setOverride(store->uiLanguage());
     });
     qInfo() << "duckvox: collaborators wired";
 

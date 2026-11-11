@@ -45,7 +45,11 @@ ApplicationWindow {
     // reachable to its last card, so the shot tool flips this and grabs the
     // bottom. Harmless in the app — nothing sets it there.
     property bool scrollToEnd: false
+    property bool scrollToLanguage: false
     onScrollToEndChanged: if (scrollToEnd) settingsScroll.contentY = Math.max(0, settingsScroll.contentHeight - settingsScroll.height)
+    // Screenshot harness: land one card above the fold end so the
+    // Interface-language card is in frame (bottom-relative, never overshoots).
+    onScrollToLanguageChanged: if (scrollToLanguage) settingsScroll.contentY = Math.max(0, settingsScroll.contentHeight - settingsScroll.height - 480)
 
     component PillButton: Button {
         id: pill
@@ -570,6 +574,39 @@ ApplicationWindow {
                                 text: ", ."
                                 active: Settings.punctStyle === "en"
                                 onClicked: Settings.punctStyle = "en"
+                            }
+                        }
+                    }
+
+                    Card {
+                        title: qsTr("Interface language")
+                        RowLayout {
+                            Layout.fillWidth: true
+                            spacing: 8
+                            Label {
+                                text: "🌐"
+                                font.pixelSize: 14
+                            }
+                            Label {
+                                text: Settings.uiLanguage === "auto" ? qsTr("Following the system language") : ""
+                                color: root.dim
+                                font.pixelSize: 11
+                                Layout.fillWidth: true
+                            }
+                            Tab {
+                                text: qsTr("System")
+                                active: Settings.uiLanguage === "auto"
+                                onClicked: Settings.uiLanguage = "auto"
+                            }
+                            Tab {
+                                text: "EN"
+                                active: Settings.uiLanguage === "en"
+                                onClicked: Settings.uiLanguage = "en"
+                            }
+                            Tab {
+                                text: "中文"
+                                active: Settings.uiLanguage === "zh-CN"
+                                onClicked: Settings.uiLanguage = "zh-CN"
                             }
                         }
                     }
