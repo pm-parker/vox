@@ -17,7 +17,9 @@
 #include <QQmlContext>
 #include <QQmlError>
 #include <QQuickWindow>
+#include <QSize>
 #include <QTimer>
+#include <QWindow>
 
 #include <functional>
 #include <iostream>
@@ -87,8 +89,20 @@ int main(int argc, char *argv[]) {
     // Theme dir is optional (argv[4]) so the tool can render an arbitrary
     // theme instead of the live one; empty = the real Omarchy state dir.
     const QString themeDir = argc > 4 ? QString::fromLocal8Bit(argv[4]) : QString();
+    // Optional "WxH" (argv[5]) reproduces the live window geometry: the tiler
+    // clamps this window on small screens, and the layout must survive it.
+    QSize forced;
+    if (argc > 5) {
+        const QStringList wh = QString::fromLocal8Bit(argv[5]).split('x');
+        if (wh.size() == 2)
+            forced = QSize(wh[0].toInt(), wh[1].toInt());
+    }
     auto *theme = new Theme(themeDir, &app);
     auto *translator = new Translator({}, ":/i18n", &app);
+    // Same as the daemon: without installTranslator the catalog never
+    // answers qsTr() and every README shot renders English regardless of
+    // the desktop language.
+    app.installTranslator(translator);
 
     qmlRegisterSingletonInstance("Vox", 1, 0, "Backend", backend);
     qmlRegisterSingletonInstance("Vox", 1, 0, "Settings", store);
@@ -108,6 +122,10 @@ int main(int argc, char *argv[]) {
     qml.load(QUrl("qrc:/duckvox/ui/Main.qml"));
     if (qml.rootObjects().isEmpty())
         return 1;
+    if (forced.isValid()) {
+        if (auto *w = qobject_cast<QQuickWindow *>(qml.rootObjects().value(0)))
+            w->resize(forced);
+    }
 
     // idle -> listening -> processing -> idle, grabbing a frame in each.
     runSteps([&](int step) {
@@ -125,6 +143,15 @@ int main(int argc, char *argv[]) {
         case 3:
             shoot("04-transcribed");
             std::cout << "last text: " << qPrintable(backend->lastText()) << '\n';
+            break;
+        case 4:
+            // Flip to the Settings page (same property the tabs set) and
+            // grab it: proves the settings surface renders its cards.
+            if (auto *root = g_qml->rootObjects().value(0))
+                root->setProperty("page", 1);
+            break;
+        case 5:
+            shoot("05-settings");
             QGuiApplication::quit();
             break;
         }
@@ -149,6 +176,8 @@ void runSteps(const std::function<void(int)> &step) {
             fire->setInterval(kSettle);
         else if (*index == 3)
             fire->setInterval(kTranscribe);
+        else if (*index == 4)
+            fire->setInterval(1200); // page flip repaint
     });
     // Give QML one frame to lay out before the first shot.
     QTimer::singleShot(400, fire, [fire] { fire->start(); });

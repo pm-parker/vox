@@ -219,8 +219,19 @@ int main(int argc, char *argv[]) {
     QObject::connect(control, &ControlServer::quitRequested, &app, &QApplication::quit);
     QObject::connect(&app, &QApplication::aboutToQuit, reporter, [reporter] { reporter->setOffline(); });
     control->listen();
-    auto *theme = new Theme(dataDir + "/current/theme", &app);
-    auto *translator = new Translator(dataDir + "/current/language", ":/i18n", &app);
+    // Defaults matter: empty strings make Theme/Translator read Omarchy's
+    // LIVE state (~/.local/state/omarchy/current, ~/.config/omarchy/language).
+    // They were pointed at dataDir/current/... which never exists, so the
+    // language catalog silently resolved to English and the theme only worked
+    // through its built-in fallback.
+    auto *theme = new Theme({}, &app);
+    auto *translator = new Translator({}, ":/i18n", &app);
+    // Actually install it: a QTranslator registered only as a QML singleton
+    // never answers qsTr(), so every label silently stayed English no matter
+    // what Omarchy's language file said. Later language changes retranslate
+    // through the Translator::changed connection below (the catalog is already
+    // re-read by then).
+    app.installTranslator(translator);
     // Brand switch: settings wins over the theme. The store's default (true)
     // keeps every fresh install in duck yellow; turning it off returns the
     // accent to Omarchy's live theme.

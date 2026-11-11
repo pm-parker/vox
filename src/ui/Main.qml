@@ -3,6 +3,7 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Controls.Basic
 import QtQuick.Layouts
+import QtQuick.Window
 import Vox
 
 // The one window: a big mic, the last sentence, and just enough settings.
@@ -11,7 +12,9 @@ import Vox
 ApplicationWindow {
     id: root
     width: 430
-    height: 940
+    // Fit the screen: a fixed 940 exceeds small displays (a 720-tall panel
+    // tiled this window into a 328-slit, which looked like a blank page).
+    height: Math.min(940, Math.max(560, Screen.height - 80))
     visible: true
     color: "#161616"
     title: "vox"
@@ -403,7 +406,6 @@ ApplicationWindow {
         }
 
         }
-        } // dictatePage
 
         // Settings page: its own scrollable surface so every card stays
         // reachable. Keys.forwardTo (above) feeds PgUp/PgDn/arrows to the bar.
@@ -505,7 +507,7 @@ ApplicationWindow {
                     spacing: 8
                     Rectangle {
                         width: 8; height: 8; radius: 4
-                        anchors.verticalCenter: parent.verticalCenter
+                        Layout.alignment: Qt.AlignVCenter
                         color: root.dim
                     }
                     Label {
@@ -577,7 +579,7 @@ ApplicationWindow {
                     spacing: 8
                     Rectangle {
                         width: 8; height: 8; radius: 4
-                        anchors.verticalCenter: parent.verticalCenter
+                        Layout.alignment: Qt.AlignVCenter
                         color: root.dim
                     }
                     Label {
@@ -666,7 +668,7 @@ ApplicationWindow {
                     spacing: 8
                     Rectangle {
                         width: 8; height: 8; radius: 4
-                        anchors.verticalCenter: parent.verticalCenter
+                        Layout.alignment: Qt.AlignVCenter
                         color: root.dim
                     }
                     Label {
@@ -819,7 +821,7 @@ ApplicationWindow {
                     spacing: 8
                     Rectangle {
                         width: 8; height: 8; radius: 4
-                        anchors.verticalCenter: parent.verticalCenter
+                        Layout.alignment: Qt.AlignVCenter
                         color: Speech.phase === "ready" ? root.good
                              : Speech.phase === "error" ? root.bad
                              : Speech.phase === "downloading" || Speech.phase === "extracting" ? root.accent
@@ -1056,4 +1058,5 @@ ApplicationWindow {
         }
         }
     }
+}
 }

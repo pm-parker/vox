@@ -1,5 +1,5 @@
 pkgname=duckvox
-pkgver=2.1.0
+pkgver=2.1.2
 pkgrel=1
 pkgdesc='Voice input for Omarchy — offline dictation into any window'
 arch=('x86_64' 'aarch64')
@@ -48,4 +48,9 @@ package() {
   local bin
   bin=$(find "$srcdir" -type f -name sherpa-onnx-offline -perm -u+x | head -1)
   install -Dm755 "$bin" "$pkgdir/usr/bin/sherpa-onnx-offline"
+  # Floating window rule: Omarchy loads every file in default/hypr/apps, and
+  # this keeps the 430x940 window full-size on short screens instead of a
+  # tiled 328-slit (which made the settings page look half-broken).
+  install -Dm644 "$startdir/duckvox-windows.lua" \
+    "$pkgdir/usr/share/omarchy/default/hypr/apps/duckvox.lua"
 }
