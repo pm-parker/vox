@@ -34,5 +34,10 @@ case "${1:-}" in
     ensure_daemon || exit 1
     duckvox --toggle >/dev/null 2>&1 || true
     ;;
+  reload-keys)
+    # Re-derive ~/.config/duckvox/shortcuts.lua from the saved keys and
+    # reload the Hyprland binds (the generated file's comment points here).
+    omarchy-dictation-duckvox-keys
+    ;;
   *) echo "Usage: omarchy dictation duckvox <start|stop|toggle>" >&2; exit 1 ;;
 esac

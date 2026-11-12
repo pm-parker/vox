@@ -185,6 +185,89 @@ private slots:
     QCOMPARE(TextPipeline::process(QStringLiteral("Yeah."), store), QStringLiteral("Yeah\u3002"));
     }
 
+    // Chinese punctuation conversion must not touch URLs, domains, file
+    // names, versions, clock times, or digit groups (issue #1, part 2).
+    void textPipelineProtectsUrlsVersionsAndTimes()
+    {
+        QTemporaryDir dir;
+        Store store(dir.path());
+        store.setPunctStyle(QStringLiteral("cn"));
+
+        QCOMPARE(TextPipeline::process(QStringLiteral("打开 example.com 看看"), store),
+                 QStringLiteral("打开 example.com 看看"));
+        QCOMPARE(TextPipeline::process(QStringLiteral("访问 https://github.com/k2-fsa/sherpa-onnx 仓库"), store),
+                 QStringLiteral("访问 https://github.com/k2-fsa/sherpa-onnx 仓库"));
+        QCOMPARE(TextPipeline::process(QStringLiteral("这是 Node.js 脚本"), store),
+                 QStringLiteral("这是 Node.js 脚本"));
+        QCOMPARE(TextPipeline::process(QStringLiteral("版本 2.3.3 发布了"), store),
+                 QStringLiteral("版本 2.3.3 发布了"));
+        QCOMPARE(TextPipeline::process(QStringLiteral("会议在 10:30 开始"), store),
+                 QStringLiteral("会议在 10:30 开始"));
+        QCOMPARE(TextPipeline::process(QStringLiteral("数值 1,000 与 3.14 保持原样"), store),
+                 QStringLiteral("数值 1,000 与 3.14 保持原样"));
+
+        // Ordinary sentences still convert.
+        QCOMPARE(TextPipeline::process(QStringLiteral("好的,谢谢"), store),
+                 QStringLiteral("好的，谢谢"));
+    }
+
+    // Capitalization fires at sentence starts, not mid-identifier: an ASCII
+    // dot only opens a sentence window when whitespace follows it.
+    void textPipelineCapitalizesSentencesNotIdentifiers()
+    {
+        QTemporaryDir dir;
+        Store store(dir.path());
+        store.setPunctStyle(QStringLiteral("en"));
+
+        QCOMPARE(TextPipeline::process(QStringLiteral("hello world. this works"), store),
+                 QStringLiteral("Hello world. This works"));
+        QCOMPARE(TextPipeline::process(QStringLiteral("try example.com today"), store),
+                 QStringLiteral("Try example.com today"));
+        QCOMPARE(TextPipeline::process(QStringLiteral("运行 main.js 然后 done"), store),
+                 QStringLiteral("运行 main.js 然后 done"));
+    }
+
+    // Full-width punctuation hugs its neighbours (no space before a latin
+    // word), latin words gain spaces against CJK, Hangul counts as CJK.
+    void textPipelineFixesCJKSpacing()
+    {
+        QTemporaryDir dir;
+        Store store(dir.path());
+
+        QCOMPARE(TextPipeline::process(QStringLiteral("你好，world"), store),
+                 QStringLiteral("你好，world"));
+        QCOMPARE(TextPipeline::process(QStringLiteral("你好,world"), store),
+                 QStringLiteral("你好，world"));
+        QCOMPARE(TextPipeline::process(QStringLiteral("使用Vue框架"), store),
+                 QStringLiteral("使用 Vue 框架"));
+        QCOMPARE(TextPipeline::process(QStringLiteral("안녕 world 测试"), store),
+                 QStringLiteral("안녕 world 测试"));
+    }
+
+    // ASCII hot words match on word boundaries ("fourteen" keeps its
+    // "four"); CJK keys stay literal, no \b semantics between hanzi.
+    void storeAppliesDictionaryOnWordBoundaries()
+    {
+        QTemporaryDir dir;
+        Store store(dir.path());
+        store.addWord("four", "4");
+        store.addWord("节点", "Node.js");
+        QCOMPARE(store.applyDictionary("fourteen and four"), "fourteen and 4");
+        QCOMPARE(store.applyDictionary("说出 节点 这个词"), "说出 Node.js 这个词");
+    }
+
+    // Hot words land AFTER punctuation conversion, so an entry whose
+    // replacement contains ASCII punctuation survives cn mode intact.
+    void textPipelineAppliesHotWordsAfterPunctuation()
+    {
+        QTemporaryDir dir;
+        Store store(dir.path());
+        store.setPunctStyle(QStringLiteral("cn"));
+        store.addWord("瑞克节点", "React Node.js");
+        QCOMPARE(TextPipeline::process(QStringLiteral("说说瑞克节点吧"), store),
+                 QStringLiteral("说说React Node.js吧"));
+    }
+
 private:
     static void write(const QString &path, const QByteArray &contents)
     {

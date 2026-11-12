@@ -83,6 +83,7 @@ private:
     static QString findBin(const QString &modelsDirectory);
     void setPhase(const QString &phase);
     void finishDownload();
+    void finishExtraction(bool ok);
     void pollProgress();
 
     QString m_dir;
@@ -95,6 +96,7 @@ private:
     bool m_downloading = false;
     QProcess m_fetch;
     QProcess m_worker;
+    QProcess m_unpacker; // tar, run async so the GUI never blocks on extraction
     QTimer m_progressTimer;
     QTimer m_watchdog;
 };

@@ -245,19 +245,20 @@
       <div class="cap">
         <div class="idx">03 · INS</div>
         <h3>直达光标</h3>
-        <p>wtype 以 1 ms 间隔合成键入，慢到应用跟得上、快到无感；杀不掉的输入框自动回退 wl-copy，
+        <p>wtype 合成按键直入光标，不加多余延迟；杀不掉的输入框自动回退 wl-copy，
            文本永不丢失。不经过剪贴板管理器，不打扰你的历史记录。</p>
       </div>
       <div class="cap">
         <div class="idx">04 · VAD</div>
         <h3>RMS 静音检测</h3>
-        <p>20 ms 窗实时算响度：点按模式停顿即收尾（默认 1.4 s，可调），最长 90 s 兜底。
+        <p>20 ms 窗实时算响度：点按模式停顿即收尾（默认 1.6 s，可调），最长 120 s 兜底。
            按住模式全程录音，松手才提交 —— 节奏由你的嘴和手决定，不由定时器决定。</p>
       </div>
       <div class="cap">
         <div class="idx">05 · HID</div>
         <h3>常驻守护 + 状态面板</h3>
-        <p><span class="n">duckvox --minimized</span> 常驻，按键零启动开销；Omarchy bar 上的麦克风图标
+        <p><span class="n">duckvox --minimized</span> 常驻，按键零启动开销；识别在后台进程进行，
+           期间按键与界面不阻塞。Omarchy bar 上的麦克风图标
            三态着色（空闲/监听/转写），面板里看最近转写、一键复制重发。</p>
       </div>
       <div class="cap">
@@ -284,7 +285,7 @@
     </p>
     <div class="table-wrap"><table>
       <tr><th>指标</th><th>数值</th><th>说明</th></tr>
-      <tr><td>识别延迟（热）</td><td class="hl">2.6–2.8 s</td><td>5.59 s 语音，松手到出字。含进程冷启动 —— 常驻守护下模型常驻内存，感知更快</td></tr>
+      <tr><td>识别延迟（热）</td><td class="hl">2.6–2.8 s</td><td>5.59 s 语音，松手到出字。含进程启动与模型加载 —— 识别在后台进行，界面与按键不阻塞</td></tr>
       <tr><td>过程级 RTF</td><td class="hl">≈ 0.48</td><td>处理 1 秒语音约耗 0.48 秒，快于实时；边说边算，出字更快</td></tr>
       <tr><td>识别进程峰值内存</td><td class="dim">≈ 370 MB</td><td>int8 SenseVoice 载入后稳态更低，支持页面切换无感</td></tr>
       <tr><td>模型下载</td><td class="dim">163 MB</td><td>int8 导出（约 230 MB 解包），一次性；fp32 版 1 GB，duckvox 不用也 不下载</td></tr>

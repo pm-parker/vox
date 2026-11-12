@@ -6,6 +6,7 @@
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
+#include <QRegularExpression>
 #include <QSaveFile>
 #include <QStandardPaths>
 
@@ -114,6 +115,10 @@ void Store::setModel(const QString &model) { setSetting("model", model); }
 bool Store::autostart() const { return m_settings.value("autostart", true).toBool(); }
 
 void Store::setAutostart(bool on) { setSetting("autostart", on); }
+// Default ON by design: reaching duckvox means the user ran
+// `omarchy install dictation duckvox`, and Omarchy dictation backends are
+// expected to come back after a reboot. The toggle in the window still
+// turns it off; see Backend::applyAutostart for the guarded line it edits.
 
 QJsonObject Store::shortcuts() const {
     return m_settings.value("shortcuts").toJsonObject();
@@ -169,7 +174,9 @@ void Store::removeWord(const QString &from) {
 
 // crostivoice learned the hard way to apply hot words as literal strings,
 // longest first: a naive regex pass let short rules cannibalize longer ones
-// ("four" inside "gpt four" became "gpt 4").
+// ("four" inside "gpt four" became "gpt 4"). ASCII-only keys additionally
+// match on word boundaries, so "four -> 4" no longer eats the "four" in
+// "fourteen"; CJK keys stay literal (no \b semantics between hanzi).
 QString Store::applyDictionary(const QString &text) const {
     if (m_dictionary.isEmpty() || text.isEmpty())
         return text;
@@ -185,8 +192,21 @@ QString Store::applyDictionary(const QString &text) const {
         return a.first.size() > b.first.size();
     });
     QString result = text;
-    for (const auto &pair : pairs)
-        result.replace(pair.first, pair.second, Qt::CaseSensitive);
+    for (const auto &pair : pairs) {
+        bool asciiOnly = true;
+        for (const QChar c : pair.first)
+            if (c.unicode() >= 0x80) {
+                asciiOnly = false;
+                break;
+            }
+        if (asciiOnly) {
+            const QRegularExpression wordBoundary(
+                "\\b" + QRegularExpression::escape(pair.first) + "\\b");
+            result.replace(wordBoundary, pair.second);
+        } else {
+            result.replace(pair.first, pair.second, Qt::CaseSensitive);
+        }
+    }
     return result;
 }
 

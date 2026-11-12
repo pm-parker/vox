@@ -76,10 +76,12 @@ bool Recorder::start(int gapMs, int waitFirstMs, int maxMs, bool autoStop, float
     m_threshold = vadThreshold;
     // parec raw stream: fixed format so the VAD math and the model input
     // agree on what the bytes mean. An empty source follows the system
-    // default; a picked source is passed straight through. A warm stream on
-    // the same source is promoted into this take; anything else respawns.
-    if (!m_warm || m_capture.state() == QProcess::NotRunning
-        || (!source.isEmpty() && source != m_activeSource)) {
+    // default; a picked source is passed straight through. Any mismatch —
+    // including switching BACK to the default (empty) from a picked device —
+    // respawns the capture; comparing the two names directly is what makes
+    // the switch back actually happen instead of silently keeping the old
+    // device.
+    if (!m_warm || m_capture.state() == QProcess::NotRunning || source != m_activeSource) {
         if (m_capture.state() != QProcess::NotRunning) {
             m_killQuiet = true;
             m_capture.kill();
