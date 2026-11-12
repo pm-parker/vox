@@ -3,9 +3,11 @@
 #include <QDir>
 #include <QFile>
 #include <QIcon>
+#include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QLocalSocket>
+#include <QProcess>
 #include <QQmlApplicationEngine>
 #include <QQuickWindow>
 #include <QStandardPaths>
@@ -129,6 +131,52 @@ int printSetting(const QString &key) {
     return 0;
 }
 } // namespace
+
+// Omarchy loads the float rule for DuckVox from
+// /usr/share/omarchy/default/hypr/apps/duckvox.lua, but Hyprland only reads
+// that file on `hyprctl reload`. A freshly installed or upgraded package
+// therefore leaves the panel tiled until the user reloads the compositor or
+// logs out again — the window then opens as a half-height slit.
+//
+// Inject the same rule at runtime instead: Hyprland applies runtime rules to
+// windows mapped later, and the QML window is created after this call, so the
+// panel floats from the very first "show". Failures are ignored — outside
+// Hyprland there is simply no rule to install.
+void ensureFloatingWindowRule() {
+    const int windowWidth = 440; // must match the QML window width
+    int x = 24;
+    int y = 96;
+
+    // Mirror the config rule's placement: right edge, 16% down the screen.
+    QProcess monitorQuery;
+    monitorQuery.start(QStringLiteral("hyprctl"),
+                       {QStringLiteral("monitors"), QStringLiteral("-j")});
+    if (monitorQuery.waitForFinished(1500)) {
+        const QJsonArray monitors = QJsonDocument::fromJson(monitorQuery.readAllStandardOutput()).array();
+        for (const QJsonValue &value : monitors) {
+            const QJsonObject monitor = value.toObject();
+            if (!monitor.value(QStringLiteral("focused")).toBool())
+                continue;
+            x = monitor.value(QStringLiteral("x")).toInt()
+                + monitor.value(QStringLiteral("width")).toInt() - windowWidth - 24;
+            y = monitor.value(QStringLiteral("y")).toInt()
+                + qRound(monitor.value(QStringLiteral("height")).toDouble() * 0.16);
+            break;
+        }
+    }
+
+    const QString rule =
+        QStringLiteral("hl.window_rule({match={class=\"duckvox$\"}, float=true, move={%1,%2}})")
+            .arg(x)
+            .arg(y);
+    QProcess ruleInjection;
+    ruleInjection.start(QStringLiteral("hyprctl"), {QStringLiteral("eval"), rule});
+    if (!ruleInjection.waitForFinished(1500))
+        return;
+    const QString result = QString::fromUtf8(ruleInjection.readAllStandardOutput()).trimmed();
+    if (!result.isEmpty() && !result.startsWith(QLatin1String("ok")))
+        qWarning() << "duckvox: floating window rule not installed:" << result;
+}
 
 int main(int argc, char *argv[]) {
     // CLI mode first, before QApplication grabs a display: duckvox --toggle
@@ -267,6 +315,10 @@ int main(int argc, char *argv[]) {
     QObject::connect(
         &qml, &QQmlApplicationEngine::objectCreationFailed, &app,
         [] { QApplication::exit(1); }, Qt::QueuedConnection);
+    // Before the QML window is created: the float rule has to exist when the
+    // window maps, otherwise Hyprland tiles it.
+    ensureFloatingWindowRule();
+
     // Plain qmake + RESOURCES has no qmldir, so load the qrc URL directly
     // instead of loadFromModule (that path needs qt_add_qml_module).
     qml.load(QUrl("qrc:/duckvox/ui/Main.qml"));
