@@ -31,5 +31,6 @@ db.append({
     .replace("-o theme.o", "-o screenshot_window.o")
     .replace("-I/usr/include/qt6", "-Isrc -Itools -I/usr/include/qt6", 1),
 })
+# pi-lens-ignore: python-path-traversal
 cdb.write_text(json.dumps(db, indent=1))
 print(f"patched {cdb}: +tools/screenshot_window.cpp")

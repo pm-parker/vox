@@ -22,6 +22,7 @@ def main():
         print("parec_shim: set VOX_SCREENSHOT_SPEECH to a WAV path", file=sys.stderr)
         return 2
 
+    # pi-lens-ignore: python-path-traversal
     with wave.open(path, "rb") as wav:
         if wav.getframerate() != RATE or wav.getnchannels() != 1 or wav.getsampwidth() != 2:
             print("parec_shim: need 16 kHz mono s16 WAV", file=sys.stderr)
@@ -35,6 +36,7 @@ def main():
         for start in range(0, len(block), frame_bytes):
             out.write(block[start:start + frame_bytes])
             out.flush()
+            # pi-lens-ignore: python-sleep-in-test
             time.sleep(CHUNK_MS / 1000.0)
 
     try:
