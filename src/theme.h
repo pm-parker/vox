@@ -1,6 +1,7 @@
 #pragma once
 
 #include <QFileSystemWatcher>
+#include <QLocalSocket>
 #include <QObject>
 #include <QProcess>
 #include <QTimer>
@@ -39,6 +40,8 @@ signals:
 private:
     void reload();
     void refreshRounding();
+    static QString hyprSocketPath();
+    void reconnectEvents();
     static QString foregroundFor(const QString &background);
 
     QString m_directory;
@@ -49,5 +52,8 @@ private:
     QString m_hyprctl;
     int m_radius = 0;
     QProcess m_roundingProcess;
-    QTimer m_roundingPoll, m_roundingTimeout;
+    QTimer m_roundingTimeout;
+    // Hyprland socket2 event stream: configreloaded lines trigger one
+    // rounding re-read (replaces the old 1 Hz hyprctl poll).
+    QLocalSocket m_events;
 };

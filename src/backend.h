@@ -75,9 +75,12 @@ public:
     Q_INVOKABLE void refreshMics();
     // Apply the autostart setting to the Omarchy startup list. Called once
     // by main() after construction (deferred, so the autostart file exists
-    // even on a cold first boot) and again whenever the setting changes. A
-    // missing entry is only added when the setting is on — the package
-    // never secretly opts the user in.
+    // even on a cold first boot) and again whenever the setting changes.
+    // ON is the default, on purpose: reaching this app means the user ran
+    // `omarchy install dictation duckvox`, and Omarchy dictation backends
+    // are expected to come back at login. The toggle turns it off (the
+    // launch line is swapped for a guard comment, so re-enabling is one
+    // flip); nothing is ever added while the setting is off.
     Q_INVOKABLE void applyAutostart();
     // Regenerate the shortcut file and reload the binds (runs the packaged
     // omarchy-dictation-duckvox-keys). resetShortcuts also clears the saved

@@ -118,6 +118,20 @@ Engine::Engine(const QString &modelsDirectory, QObject *parent)
         setPhase("error");
     });
 
+    // Extraction tail for the async unpacker: verify the expected files
+    // landed, drop the archive either way, flip the phase.
+    connect(&m_unpacker, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished), this,
+            [this](int code, QProcess::ExitStatus status) {
+                if (m_phase != "extracting")
+                    return; // stale signal (e.g. remove() killed the run)
+                finishExtraction(code == 0 && status == QProcess::NormalExit);
+            });
+    connect(&m_unpacker, &QProcess::errorOccurred, this, [this](QProcess::ProcessError) {
+        if (m_phase != "extracting")
+            return;
+        finishExtraction(false);
+    });
+
     m_watchdog.setSingleShot(true);
     m_watchdog.setInterval(30000);
     connect(&m_watchdog, &QTimer::timeout, this, [this] {
@@ -165,6 +179,10 @@ Engine::~Engine() {
         m_fetch.kill();
         m_fetch.waitForFinished(1000);
     }
+    if (m_unpacker.state() != QProcess::NotRunning) {
+        m_unpacker.kill();
+        m_unpacker.waitForFinished(1000);
+    }
 }
 
 QString Engine::findBin(const QString &modelsDirectory) {
@@ -185,7 +203,7 @@ void Engine::setPhase(const QString &phase) {
 }
 
 void Engine::refresh() {
-    if (m_downloading)
+    if (m_downloading || m_phase == "extracting")
         return;
     const ModelSpec &active = spec();
     const bool ready = QFileInfo::exists(m_dir + "/" + active.dirName + "/" + active.modelFile)
@@ -199,7 +217,7 @@ void Engine::refresh() {
 }
 
 void Engine::install() {
-    if (m_downloading || m_phase == "ready")
+    if (m_downloading || m_phase == "ready" || m_phase == "extracting")
         return;
     const ModelSpec &active = spec();
     m_error.clear();
@@ -240,31 +258,39 @@ void Engine::finishDownload() {
         return;
     }
     setPhase("extracting");
-    QProcess tar;
-    tar.setWorkingDirectory(m_dir);
-    tar.start("tar", {"xjf", archive});
-    if (!tar.waitForFinished(600000) || tar.exitCode() != 0) {
-        tar.kill();
-        QFile::remove(archive);
-        m_error = tr("The downloaded model archive could not be extracted.");
-        setPhase("error");
-        return;
-    }
-    QFile::remove(archive);
-    m_progress = 100;
+    // Unpack OFF the GUI thread: a synchronous waitForFinished here froze
+    // hotkeys, the control socket and the window for as long as tar needed
+    // (tens of seconds on these archives, against a 10 min timeout).
+    // m_unpacker's finished/error connects (constructor) call
+    // finishExtraction when it lands.
+    m_unpacker.setWorkingDirectory(m_dir);
+    m_unpacker.start("tar", {"xjf", archive});
+    if (!m_unpacker.waitForStarted(3000))
+        finishExtraction(false);
+}
+
+// Shared tail of the async extraction: verify the expected files landed,
+// clean the archive either way, and flip the phase.
+void Engine::finishExtraction(bool ok) {
+    QFile::remove(m_dir + "/asr.tar.bz2");
     m_bin = findBin(m_dir);
     const ModelSpec &active = spec();
-    const bool ok = !m_bin.isEmpty()
-                    && QFileInfo::exists(m_dir + "/" + active.dirName + "/" + active.modelFile);
-    if (!ok) {
-        m_error = tr("The model archive did not contain what duckvox expected.");
-        setPhase("error");
+    if (ok && !m_bin.isEmpty()
+        && QFileInfo::exists(m_dir + "/" + active.dirName + "/" + active.modelFile)) {
+        m_progress = 100;
+        setPhase("ready");
         return;
     }
-    setPhase("ready");
+    m_error = ok ? tr("The model archive did not contain what duckvox expected.")
+                 : tr("The downloaded model archive could not be extracted.");
+    setPhase("error");
 }
 
 void Engine::remove() {
+    if (m_unpacker.state() != QProcess::NotRunning) {
+        m_unpacker.kill();
+        m_unpacker.waitForFinished(1000);
+    }
     QDir(m_dir + "/" + spec().dirName).removeRecursively();
     QFile::remove(m_dir + "/asr.tar.bz2");
     m_progress = 0;

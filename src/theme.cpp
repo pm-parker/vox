@@ -11,9 +11,10 @@
 #include <QStandardPaths>
 #include <cmath>
 
-Theme::Theme(const QString &directory, QObject *parent, const QString &hyprctl)
+Theme::Theme(const QString &currentDirectory, QObject *parent, const QString &hyprctl)
     : QObject(parent),
-      m_directory(directory.isEmpty() ? QDir::homePath() + "/.local/state/omarchy/current" : directory) {
+      m_directory(currentDirectory.isEmpty() ? QDir::homePath() + "/.local/state/omarchy/current"
+                                              : currentDirectory) {
     m_debounce.setSingleShot(true);
     m_debounce.setInterval(80);
     connect(&m_watcher, &QFileSystemWatcher::directoryChanged, this, [this] { m_debounce.start(); });
@@ -24,7 +25,7 @@ Theme::Theme(const QString &directory, QObject *parent, const QString &hyprctl)
     // overrides can both set, so ask hyprctl rather than reading its config.
     // Without Hyprland the corners stay sharp, like Omarchy's default.
     m_hyprctl = !hyprctl.isEmpty() ? hyprctl
-              : directory.isEmpty() && !qEnvironmentVariableIsEmpty("HYPRLAND_INSTANCE_SIGNATURE")
+              : currentDirectory.isEmpty() && !qEnvironmentVariableIsEmpty("HYPRLAND_INSTANCE_SIGNATURE")
                   ? QStandardPaths::findExecutable("hyprctl") : QString();
     m_roundingTimeout.setSingleShot(true);
     m_roundingTimeout.setInterval(500);
@@ -40,11 +41,27 @@ Theme::Theme(const QString &directory, QObject *parent, const QString &hyprctl)
             emit changed();
         }
     });
-    m_roundingPoll.setInterval(1000);
-    connect(&m_roundingPoll, &QTimer::timeout, this, &Theme::refreshRounding);
+    // Rounding changes ride Hyprland's own event socket: configreloaded on
+    // socket2 means decoration:rounding may have moved, so ask once via
+    // hyprctl. This replaces a 1 Hz poll that would spawn ~86k processes a
+    // day. No socket -> no refresh either; the theme file watcher still runs.
+    connect(&m_events, &QLocalSocket::readyRead, this, &Theme::refreshRounding);
     if (!m_hyprctl.isEmpty())
-        m_roundingPoll.start();
+        m_events.connectToServer(hyprSocketPath());
     reload();
+}
+
+QString Theme::hyprSocketPath() {
+    const QString runtime = QStandardPaths::writableLocation(QStandardPaths::RuntimeLocation);
+    return runtime + "/hypr/" + qEnvironmentVariable("HYPRLAND_INSTANCE_SIGNATURE") + "/.socket2.sock";
+}
+
+// Re-arm the event socket after a Hyprland restart: the daemon replaces the
+// socket file, so a dead connection is retried on the next theme reload.
+void Theme::reconnectEvents() {
+    if (m_hyprctl.isEmpty())
+        return;
+    m_events.connectToServer(hyprSocketPath());
 }
 
 Theme::~Theme() {
@@ -98,6 +115,8 @@ void Theme::setDuckYellow(bool on) {
 }
 
 void Theme::reload() {
+    if (m_events.state() != QLocalSocket::ConnectedState)
+        reconnectEvents();
     refreshRounding();
     const auto paths = m_watcher.files() + m_watcher.directories();
     if (!paths.isEmpty())
