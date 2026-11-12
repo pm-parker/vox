@@ -198,7 +198,7 @@
 </nav>
 <div class="nav-scrim" id="scrim"></div>
 <main id="top">
-  <p class="crumb">Product updates <span style="margin:0 8px;color:#D1D5DB">/</span> <b>2026 年 11 月 · v1.1.0</b></p>
+  <p class="crumb">Product updates <span style="margin:0 8px;color:#D1D5DB">/</span> <b><span data-release-date>2026 年 11 月</span> · v<span data-release-version>2.3.3</span></b></p>
   <h1>duckvox<span class="suffix">voice → text, offline, for Omarchy</span></h1>
   <p class="tagline">按住一个键，说出的话直接落在光标处 —— 没有云，没有账号，没有剪贴板中转</p>
   <div class="cta-row">
@@ -333,11 +333,31 @@ duckvox</pre>
     <a href="https://github.com/pm-parker/vox" target="_blank">GitHub</a>
     <a href="https://github.com/pm-parker/vox#readme" target="_blank">README</a>
     <span>MIT License</span>
-    <span>v1.1.0</span>
+    <span>v<span data-release-version>2.3.3</span></span>
   </footer>
 </main>
 <script>
 (function(){
+  // 版本号：运行时取 GitHub 最新 Release。HTML 里只留当前版作降级兜底，
+  // 这样以后发版不必再手改页面，版本不会再漂成 v1.1.0。
+  (function(){
+    var vs = document.querySelectorAll('[data-release-version]');
+    if (!vs.length) return;
+    fetch('https://api.github.com/repos/pm-parker/vox/releases/latest')
+      .then(function(r){ return r.ok ? r.json() : null; })
+      .then(function(j){
+        if (!j || !j.tag_name) return;
+        var v = String(j.tag_name).replace(/^v/, '');
+        vs.forEach(function(s){ s.textContent = v; });
+        if (j.published_at) {
+          var d = new Date(j.published_at);
+          document.querySelectorAll('[data-release-date]').forEach(function(s){
+            s.textContent = d.getFullYear() + ' 年 ' + (d.getMonth() + 1) + ' 月';
+          });
+        }
+      })
+      .catch(function(){ /* 离线或限流：保留 HTML 兜底版本 */ });
+  })();
   // 移动端菜单
   const bg=document.getElementById('burger'), dw=document.getElementById('drawer'), sc=document.getElementById('scrim');
   function closeNav(){ dw.classList.remove('open'); sc.classList.remove('on'); bg.classList.remove('x');
