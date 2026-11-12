@@ -13,12 +13,11 @@ No cloud, no accounts, no clipboard manager. SenseVoice runs on your CPU.
 <p align="center">
   <img src="docs/assets/idle.png" width="215" alt="duckvox idle">
   <img src="docs/assets/listening.png" width="215" alt="listening">
-  <img src="docs/assets/transcribed.png" width="215" alt="transcribed">
   <img src="docs/assets/settings.png" width="215" alt="settings">
 </p>
 
 <p align="center">
-  <sub><b>idle</b> · <b>listening</b> · <b>done</b> · <b>settings</b> — real frames from the app, real recognition, real theme colors.</sub>
+  <sub><b>idle</b> · <b>listening</b> · <b>settings</b> — real frames from the app, real recognition, real theme colors.</sub>
 </p>
 
 ---

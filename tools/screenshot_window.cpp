@@ -48,6 +48,14 @@ void shoot(const QString &name) {
         return;
     }
     const QImage frame = window->grabWindow();
+    {
+        const auto *screen = window->screen();
+        std::cerr << "screenshot: window " << window->width() << 'x' << window->height()
+                  << " screen " << (screen ? screen->geometry().width() : -1) << 'x'
+                  << (screen ? screen->geometry().height() : -1) << " dpr "
+                  << (screen ? screen->devicePixelRatio() : 0.0) << " platform "
+                  << qPrintable(QGuiApplication::platformName()) << '\n';
+    }
     const QString path = g_out + "/" + name + ".png";
     if (frame.isNull() || !frame.save(path)) {
         std::cerr << "screenshot: failed to save " << qPrintable(path) << '\n';
