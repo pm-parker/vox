@@ -12,6 +12,19 @@ bool isCJK(QChar c) {
     return (u >= 0x2E80 && u <= 0x9FFF) || (u >= 0xF900 && u <= 0xFAFF) || (u >= 0xFF00 && u <= 0xFFEF);
 }
 
+// A transcript made of nothing but punctuation carries no information: the
+// recogniser returns a lone mark (e.g. "。") for silence and noise. Such a
+// take must not enter the history, and above all must not be typed into the
+// window the user is editing — the old gate only rejected a completely empty
+// string, so "。" was happily inserted.
+bool hasSpeakableContent(const QString &text) {
+    for (const QChar c : text) {
+        if (c.isLetterOrNumber())
+            return true;
+    }
+    return false;
+}
+
 } // namespace
 
 namespace TextPipeline {
@@ -63,11 +76,26 @@ QString applyPunctStyle(const QString &text, bool chineseStyle) {
         {QChar(0xFF1A), ':'},   // ：
         {QChar(0xFF1B), ';'},   // ；
     };
+    if (chineseStyle) {
+        // A dot or comma between digits is a decimal point or a thousands
+        // separator, not a sentence mark: the recogniser already
+        // inverse-normalised "3.14" and "1,000", and turning them into "3。14"
+        // would undo exactly that. Hide them from the conversion and put
+        // them back afterwards.
+        static const QRegularExpression decimalPoint("(?<=\\d)\\.(?=\\d)");
+        static const QRegularExpression thousandsSep("(?<=\\d),(?=\\d)");
+        out.replace(decimalPoint, QLatin1String("\x01"));
+        out.replace(thousandsSep, QLatin1String("\x02"));
+    }
     for (const Rule &rule : rules) {
         if (chineseStyle)
             out.replace(QLatin1Char(rule.en), rule.cn);
         else
             out.replace(rule.cn, QLatin1Char(rule.en));
+    }
+    if (chineseStyle) {
+        out.replace(QLatin1Char('\x01'), QLatin1Char('.'));
+        out.replace(QLatin1Char('\x02'), QLatin1Char(','));
     }
     return out;
 }
@@ -98,6 +126,8 @@ QString process(const QString &text, const Store &store) {
     out = fixSpacing(out);
     out = applyPunctStyle(out, store.punctStyle() != "en");
     out = capitalizeSentences(out);
+    if (!hasSpeakableContent(out))
+        return QString();
     return out;
 }
 

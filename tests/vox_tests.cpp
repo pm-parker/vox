@@ -8,6 +8,7 @@
 #include "inserter.h"
 #include "recorder.h"
 #include "store.h"
+#include "textpipeline.h"
 #include "theme.h"
 #include "translator.h"
 
@@ -140,6 +141,27 @@ private slots:
         QCOMPARE(backend.state(), QStringLiteral("idle"));
         QVERIFY(backend.errorText().isEmpty());
         QVERIFY(backend.lastText().isEmpty());
+    }
+
+    void textPipelineDropsPunctuationOnly()
+    {
+        QTemporaryDir dir;
+        Store store(dir.path());
+        store.setPunctStyle(QStringLiteral("cn"));
+
+        // A recogniser run over silence returns a lone mark. It carries no
+        // words, so it must not become a transcript.
+        QVERIFY(TextPipeline::process(QStringLiteral("。"), store).isEmpty());
+        QVERIFY(TextPipeline::process(QStringLiteral("，、。！？"), store).isEmpty());
+        QVERIFY(TextPipeline::process(QStringLiteral("  . "), store).isEmpty());
+
+        // Real speech of any kind survives, digits included.
+        QCOMPARE(TextPipeline::process(QStringLiteral("你好。"), store), QStringLiteral("你好。"));
+        QCOMPARE(TextPipeline::process(QStringLiteral("3.14"), store), QStringLiteral("3.14"));
+    // cn style is the crostivoice habit: ASCII sentence marks become
+    // full-width; digits keep their decimal/thousands separators.
+    // "Yeah." -> "Yeah。" is intended behaviour, not a bug.
+    QCOMPARE(TextPipeline::process(QStringLiteral("Yeah."), store), QStringLiteral("Yeah\u3002"));
     }
 
 private:

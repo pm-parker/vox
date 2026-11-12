@@ -18,3 +18,4 @@
 -I/usr/include/qt6/QtQmlIntegration
 -I/usr/include/qt6/QtNetwork
 -I/usr/include/qt6/QtCore
+-I/usr/include/qt6/QtTest

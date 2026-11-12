@@ -11,3 +11,9 @@ CompileFlags:
     - "-I/usr/include/qt6/QtQml"
     - "-I/usr/include/qt6/QtNetwork"
     - "-I/usr/include/qt6/QtMultimedia"
+    # tests/vox_tests.cpp includes <QtTest>; without this every QCOMPARE and
+    # QVERIFY in that file reads as an undeclared identifier.
+    - "-I/usr/include/qt6/QtTest"
+    - "-I/usr/include/qt6/QtTestWidgets"
+    # qmake runs moc into build/tests/; the test file includes the result.
+    - "-Ibuild/tests"

@@ -1,5 +1,5 @@
 pkgname=duckvox
-pkgver=2.3.1
+pkgver=2.3.2
 pkgrel=1
 pkgdesc='Voice input for Omarchy — offline dictation into any window'
 arch=('x86_64' 'aarch64')
