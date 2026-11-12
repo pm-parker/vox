@@ -6,6 +6,12 @@
 #include "store.h"
 #include "textpipeline.h"
 
+// The build injects the release version (vox.pro VERSION). Builds outside
+// qmake — the test harness — fall back to a marker instead of failing.
+#ifndef APP_VERSION
+#define APP_VERSION "dev"
+#endif
+
 #include <QFile>
 #include <QProcess>
 #include <QStandardPaths>
@@ -39,6 +45,8 @@ Backend::Backend(Store *store, Engine *engine, Recorder *recorder, Inserter *ins
 float Backend::level() const { return m_recorder->level(); }
 int Backend::elapsedMs() const { return m_recorder->elapsedMs(); }
 QVariantList Backend::history() const { return m_store->history(); }
+
+QString Backend::version() const { return QStringLiteral(APP_VERSION); }
 
 void Backend::toggle() {
     if (m_state == "listening") {

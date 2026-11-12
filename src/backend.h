@@ -9,6 +9,13 @@ class Inserter;
 class Recorder;
 class Store;
 
+// The build injects the release version (vox.pro VERSION → APP_VERSION).
+// Builds outside qmake — the test harness — fall back to a marker instead
+// of failing to compile.
+#ifndef APP_VERSION
+#define APP_VERSION "dev"
+#endif
+
 // The session state machine tying capture, recognition, polishing, and
 // insertion together: idle -> listening -> processing -> idle. QML renders
 // this state and calls the invokables; everything that can fail happens in
@@ -16,6 +23,9 @@ class Store;
 // window, never silently swallowed.
 class Backend : public QObject {
     Q_OBJECT
+    // The running release version (from the build system's APP_VERSION),
+    // shown in the About card and by `duckvox --version`.
+    Q_PROPERTY(QString version READ version CONSTANT)
     Q_PROPERTY(QString state READ state NOTIFY stateChanged) // idle|listening|processing
     Q_PROPERTY(QString lastText READ lastText NOTIFY lastTextChanged)
     Q_PROPERTY(float level READ level NOTIFY levelChanged)
@@ -46,6 +56,7 @@ public:
 
     QString state() const { return m_state; }
     QString lastText() const { return m_lastText; }
+    QString version() const;
     float level() const;
     int elapsedMs() const;
     QVariantList history() const;

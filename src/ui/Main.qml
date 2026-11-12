@@ -1013,6 +1013,27 @@ ApplicationWindow {
                             PillButton { text: qsTr("Reset"); onClicked: Backend.resetShortcuts() }
                         }
                     }
+
+                    Card {
+                        title: qsTr("About")
+                        RowLayout {
+                            Layout.fillWidth: true
+                            spacing: 8
+                            Label {
+                                Layout.fillWidth: true
+                                text: qsTr("Offline voice input for Omarchy")
+                                color: root.fg
+                                font.pixelSize: 12
+                            }
+                            // Build-injected release version (vox.pro VERSION),
+                            // the same number the package and the GitHub tag use.
+                            Label {
+                                text: "v" + Backend.version
+                                color: root.dim
+                                font.pixelSize: 11
+                            }
+                        }
+                    }
                     Item { Layout.preferredHeight: 2 }
                 }
             }

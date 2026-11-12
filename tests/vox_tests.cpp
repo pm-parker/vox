@@ -156,6 +156,9 @@ private slots:
         Backend backend(&store, &engine, &recorder, &inserter);
 
         QCOMPARE(backend.state(), QStringLiteral("idle"));
+        // Build-injected release version must always be present (vox.pro
+        // VERSION in real builds, "dev" under the test harness).
+        QVERIFY(!backend.version().isEmpty());
         backend.repeatLast(); // no takes yet — must not crash or invent text
         backend.dismissError();
         backend.copyLast();
