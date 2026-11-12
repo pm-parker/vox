@@ -210,10 +210,12 @@ void Recorder::finish(const QString &reason, const QString &error) {
     m_level = 0;
     emit levelChanged();
     emit recordingChanged();
-    if (!error.isEmpty())
+    if (!error.isEmpty()) {
+        QFile::remove(m_takePath); // a failed capture leaves no audio behind
         emit failed(error);
-    else
+    } else {
         emit stopped(m_takePath, reason);
+    }
 }
 
 // Canonical 44-byte PCM WAV header, little endian throughout.

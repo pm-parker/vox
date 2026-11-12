@@ -120,12 +120,14 @@ private:
     void onTakeFinished(const QString &wavPath, const QString &reason);
     void onRecognized(const QString &raw);
     void insertAndReport(const QString &text);
+    void discardTake();
 
     Store *m_store;
     Engine *m_engine;
     Recorder *m_recorder;
     Inserter *m_inserter;
     QString m_state = "idle";
+    QString m_pendingTake; // WAV handed to the engine, deleted once it answers
     QString m_lastText;
     QString m_statusLine;
     QString m_errorText;

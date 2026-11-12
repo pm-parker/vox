@@ -12,7 +12,10 @@ bool Inserter::runWtype(const QString &text) {
     if (wtype.isEmpty())
         return false;
     QProcess proc;
-    proc.start(wtype, {"-s", "1000", text}); // -s gives slow apps time to focus
+    // -s gives slow apps time to focus. "--" ends wtype's option parsing, so a
+    // transcript starting with '-' ("-5 度", "- 第一项") is typed, not rejected
+    // as an unknown flag.
+    proc.start(wtype, {"-s", "1000", "--", text});
     if (!proc.waitForFinished(5000) || proc.exitCode() != 0) {
         proc.kill();
         return false;

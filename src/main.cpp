@@ -10,6 +10,7 @@
 #include <QProcess>
 #include <QQmlApplicationEngine>
 #include <QQuickWindow>
+#include <QRegularExpression>
 #include <QStandardPaths>
 #include <QTimer>
 
@@ -59,10 +60,15 @@ void migrateLegacyDataDir() {
     const QString autostartFile = configRoot + "/hypr/autostart.lua";
     QFile autostart(autostartFile);
     if (autostart.open(QIODevice::ReadOnly)) {
-        QString text = QString::fromUtf8(autostart.readAll());
+        const QString text = QString::fromUtf8(autostart.readAll());
         autostart.close();
-        const QString updated = text.replace(QLatin1String("vox --minimized"),
-                                             QLatin1String("duckvox --minimized"));
+        // QString::replace() mutates in place, so the result must go into a
+        // copy — comparing it against the receiver was always equal and the
+        // migration never wrote. The lookbehind keeps an already-migrated
+        // "duckvox --minimized" from matching its own "vox --minimized" tail.
+        static const QRegularExpression legacyLaunch(QStringLiteral("(?<![\\w-])vox --minimized"));
+        QString updated = text;
+        updated.replace(legacyLaunch, QStringLiteral("duckvox --minimized"));
         if (updated != text && autostart.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
             autostart.write(updated.toUtf8());
             autostart.close();
@@ -247,6 +253,13 @@ int main(int argc, char *argv[]) {
     const QString dataDir = QApplication::applicationDirPath() + "/data";
     auto *store = new Store({}, &app);
     auto *engine = new Engine({}, &app); // default model dir under ~/.local/share/duckvox
+    // The picker writes Speech.model (Engine); persist that choice and restore
+    // it on boot, otherwise every restart silently fell back to SenseVoice.
+    engine->setModel(store->model());
+    QObject::connect(engine, &Engine::phaseChanged, store, [engine, store] {
+        if (engine->model() != store->model())
+            store->setModel(engine->model());
+    });
     auto *recorder = new Recorder({}, &app);
     // Wake the microphone before the first hotkey: PipeWire sources suspend
     // when idle and swallow everything said while waking up.
