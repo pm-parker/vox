@@ -204,6 +204,10 @@ int main(int argc, char *argv[]) {
             else if (arg == "--status") command = "status";
             else if (arg == "--copy-last") command = "copy-last";
             else if (arg == "--show") command = "show";
+            else if (arg == "--version") {
+                std::printf("duckvox %s\n", APP_VERSION);
+                return 0;
+            }
             else if (arg == "--print-setting") {
                 // Offline: read settings.json and print one value (used by
                 // omarchy-dictation-duckvox-keys). Only the shortcuts subkeys.
@@ -214,7 +218,7 @@ int main(int argc, char *argv[]) {
                 return printSetting(QString::fromUtf8(argv[i + 1]));
             }
             else if (arg == "--minimized") command = "__spawn"; // handled below
-            else { std::fprintf(stderr, "Usage: duckvox [--toggle|--hold-start|--hold-stop|--status|--copy-last|--show|--minimized|--print-setting KEY]\n"); return 2; }
+            else { std::fprintf(stderr, "Usage: duckvox [--toggle|--hold-start|--hold-stop|--status|--copy-last|--show|--minimized|--print-setting KEY|--version]\n"); return 2; }
         }
         if (command == "__spawn") {
             // --minimized only makes sense as the daemon's own flag; fall

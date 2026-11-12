@@ -74,5 +74,6 @@
   "Off follows the live Omarchy theme accent.": "关闭后跟随 Omarchy 当前主题色。",
   "Nothing dictated yet — press Space or the mic.": "还没有听写内容——按空格或点麦克风。",
   "Nothing dictated yet.\\nPress Space or the mic, then come back.": "还没有听写内容。\\n按空格或点麦克风，然后再回来。",
-  "%1 entries — click one to insert": "共 %1 条——点击任意一条即可输入"
+  "%1 entries — click one to insert": "共 %1 条——点击任意一条即可输入",
+  "About": "关于"
 }
