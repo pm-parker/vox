@@ -127,6 +127,25 @@ private slots:
         QCOMPARE(Translator::pluralCategory("ja", 1), QStringLiteral("other"));
     }
 
+    // A finished take nobody is waiting for (backend idle) is scratch audio:
+    // it must be deleted, not left in ~/.local/share/duckvox/takes forever.
+    void backendDiscardsUnclaimedTake()
+    {
+        QTemporaryDir dir;
+        Store store(dir.path());
+        Engine engine(dir.path() + "/models");
+        Recorder recorder(dir.path() + "/takes");
+        Inserter inserter;
+        Backend backend(&store, &engine, &recorder, &inserter);
+
+        const QString take = dir.path() + "/takes/take-1.wav";
+        write(take, QByteArray(44, '\0'));
+        QVERIFY(QFile::exists(take));
+        emit recorder.stopped(take, QStringLiteral("manual"));
+        QVERIFY(!QFile::exists(take));
+        QCOMPARE(backend.state(), QStringLiteral("idle"));
+    }
+
     void backendStartsIdleAndStaysQuietWithoutTakes()
     {
         QTemporaryDir dir;

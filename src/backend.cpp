@@ -24,6 +24,7 @@ Backend::Backend(Store *store, Engine *engine, Recorder *recorder, Inserter *ins
     connect(m_recorder, &Recorder::tick, this, &Backend::elapsedChanged);
     connect(m_engine, &Engine::transcribed, this, &Backend::onRecognized);
     connect(m_engine, &Engine::failed, this, [this](const QString &message) {
+        discardTake();
         if (m_state == "processing")
             m_state = "idle";
         m_errorText = message;
@@ -84,9 +85,12 @@ void Backend::holdStop() {
 }
 
 void Backend::onTakeFinished(const QString &wavPath, const QString &reason) {
-    if (m_state != "listening")
+    if (m_state != "listening") {
+        QFile::remove(wavPath); // a take nobody is waiting for
         return;
+    }
     if (reason == "silence") {
+        QFile::remove(wavPath); // nothing to transcribe; never keep the audio
         m_state = "idle";
         m_statusLine.clear();
         m_errorText = tr("Didn't catch any speech — check the microphone and try again.");
@@ -97,10 +101,22 @@ void Backend::onTakeFinished(const QString &wavPath, const QString &reason) {
     }
     m_state = "processing";
     emit stateChanged();
-    m_engine->transcribe(wavPath, m_store->language());
+    m_pendingTake = wavPath;
+    m_engine->transcribe(wavPath, m_store->language(), m_store->useItn());
+}
+
+// Takes are scratch audio: once the engine has answered (text or error) the
+// WAV has no further use, and keeping every utterance on disk contradicts the
+// "nothing leaves, nothing lingers" promise.
+void Backend::discardTake() {
+    if (!m_pendingTake.isEmpty()) {
+        QFile::remove(m_pendingTake);
+        m_pendingTake.clear();
+    }
 }
 
 void Backend::onRecognized(const QString &raw) {
+    discardTake();
     if (m_state == "processing")
         m_state = "idle";
     const QString text = TextPipeline::process(raw, *m_store).trimmed();

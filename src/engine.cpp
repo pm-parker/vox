@@ -30,11 +30,13 @@ QVector<ModelSpec> buildCatalog() {
          "model.int8.onnx", "tokens.txt", 997'000'000, "paraformer",
          {}},
         {"zipformer", "Zipformer (multilingual)",
-         QObject::tr("zh/en streaming-quality transducer · ~350 MB"),
+         QObject::tr("zh/en streaming-quality transducer · ~310 MB"),
          "https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/"
          "sherpa-onnx-zipformer-zh-en-2023-11-22.tar.bz2",
          "sherpa-onnx-zipformer-zh-en-2023-11-22",
-         "encoder-epoch-99-avg-1.int8.onnx", "tokens.txt", 350'000'000, "transducer",
+         // File names per the sherpa-onnx model docs: epoch-34-avg-19, int8
+         // encoder/joiner, fp32 decoder (the archive ships no int8 decoder).
+         "encoder-epoch-34-avg-19.int8.onnx", "tokens.txt", 312'000'000, "transducer",
          {}},
     };
 }
@@ -64,6 +66,10 @@ void Engine::setModel(const QString &model) {
         if (entry.id == model && m_model != model) {
             m_model = model;
             refresh();
+            // refresh() only signals when the phase flips; switching between
+            // two installed models stays "ready", yet `model` (NOTIFY
+            // phaseChanged) did change and the store must persist it.
+            emit phaseChanged();
             return;
         }
     }
@@ -131,12 +137,15 @@ Engine::Engine(const QString &modelsDirectory, QObject *parent)
                     m_busy = false;
                     emit busyChanged();
                 }
+                // Not busy means the watchdog already killed this run and
+                // reported the timeout; a second "exited with an error"
+                // would overwrite that clearer message.
+                if (!wasBusy)
+                    return;
                 if (code != 0 || status != QProcess::NormalExit) {
                     emit failed(tr("The recognition engine exited with an error."));
                     return;
                 }
-                if (!wasBusy)
-                    return;
                 const QString text = parseOutput(m_worker.readAllStandardOutput() + m_worker.readAllStandardError());
                 if (text.isEmpty())
                     emit failed(tr("Nothing recognizable in that recording — try again a bit closer to the mic."));
@@ -314,9 +323,11 @@ void Engine::transcribe(const QString &wavPath, const QString &language, bool us
     } else if (active.kind == "paraformer") {
         args << "--paraformer-model=" + root + "/" + active.modelFile;
     } else {
-        args << "--zipformer2-model=" + root + "/" + active.modelFile
-             << "--decoder=" + root + "/decoder-epoch-99-avg-1.int8.onnx"
-             << "--joiner=" + root + "/joiner-epoch-99-avg-1.int8.onnx";
+        // Offline transducers take the encoder/decoder/joiner triple; there is
+        // no --zipformer2-model flag, and sherpa-onnx exits on unknown flags.
+        args << "--encoder=" + root + "/" + active.modelFile
+             << "--decoder=" + root + "/decoder-epoch-34-avg-19.onnx"
+             << "--joiner=" + root + "/joiner-epoch-34-avg-19.int8.onnx";
     }
     args << "--tokens=" + root + "/" + active.tokensFile;
     if (active.kind == "sense-voice") {
@@ -332,5 +343,9 @@ void Engine::transcribe(const QString &wavPath, const QString &language, bool us
     }
     m_busy = true;
     emit busyChanged();
-    m_watchdog.start();
+    // The watchdog must outlast a legitimately long take: a fixed 30 s cut
+    // off anything past ~60 s of audio on a laptop CPU (RTF ~0.5) even though
+    // the recorder allows 120 s. Budget 30 s plus the audio's own length.
+    const qint64 audioMs = qMax<qint64>(0, QFileInfo(wavPath).size() - 44) / 32; // s16le mono 16 kHz
+    m_watchdog.start(int(qMin<qint64>(30000 + audioMs, 10 * 60 * 1000)));
 }

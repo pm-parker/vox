@@ -30,7 +30,9 @@ ControlServer::ControlServer(Backend *backend, QObject *parent)
                 while (client->canReadLine()) {
                     const QByteArray reply = handleLine(client->readLine().trimmed());
                     client->write(reply + '\n');
-                    if (reply.contains("\"quit\""))
+                    // Exact match: a status reply whose lastText or error
+                    // happens to be "quit" must not shut the daemon down.
+                    if (reply == QByteArrayLiteral("{\"ok\":true,\"quit\":true}"))
                         emit quitRequested();
                 }
             });
