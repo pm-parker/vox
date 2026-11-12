@@ -148,6 +148,10 @@ void ensureFloatingWindowRule() {
     int y = 96;
 
     // Mirror the config rule's placement: right edge, 16% down the screen.
+    // hyprctl reports the monitor in PHYSICAL pixels while window positions
+    // are LOGICAL, so a scaled display (e.g. 1920x1080 at 1.5 = 1280x720)
+    // must be divided by its scale before the arithmetic — otherwise the
+    // panel lands outside the screen.
     QProcess monitorQuery;
     monitorQuery.start(QStringLiteral("hyprctl"),
                        {QStringLiteral("monitors"), QStringLiteral("-j")});
@@ -157,10 +161,13 @@ void ensureFloatingWindowRule() {
             const QJsonObject monitor = value.toObject();
             if (!monitor.value(QStringLiteral("focused")).toBool())
                 continue;
-            x = monitor.value(QStringLiteral("x")).toInt()
-                + monitor.value(QStringLiteral("width")).toInt() - windowWidth - 24;
-            y = monitor.value(QStringLiteral("y")).toInt()
-                + qRound(monitor.value(QStringLiteral("height")).toDouble() * 0.16);
+            double scale = monitor.value(QStringLiteral("scale")).toDouble();
+            if (scale <= 0.0)
+                scale = 1.0;
+            const int logicalWidth = qRound(monitor.value(QStringLiteral("width")).toDouble() / scale);
+            const int logicalHeight = qRound(monitor.value(QStringLiteral("height")).toDouble() / scale);
+            x = monitor.value(QStringLiteral("x")).toInt() + logicalWidth - windowWidth - 24;
+            y = monitor.value(QStringLiteral("y")).toInt() + qRound(logicalHeight * 0.16);
             break;
         }
     }

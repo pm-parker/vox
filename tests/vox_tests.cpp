@@ -1,6 +1,8 @@
 #include <QDir>
 #include <QFile>
 #include <QTemporaryDir>
+// DuckVox test suite. Needs the QtTest include path, which .clangd provides
+// for clangd (qmake supplies it to the real build).
 #include <QtTest>
 
 #include "backend.h"
