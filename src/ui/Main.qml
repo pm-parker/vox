@@ -110,20 +110,31 @@ ApplicationWindow {
             Layout.fillWidth: true
         }
         Switch {
+            id: control
             focusPolicy: Qt.NoFocus
             checked: parent.value
-            onToggled: parent.change(checked)
+            onToggled: {
+                parent.change(control.checked)
+                // The widget toggles `checked` internally, which drops the
+                // `parent.value` binding; restore it so a later settings
+                // change still moves the switch.
+                control.checked = Qt.binding(() => parent.value)
+            }
             indicator: Rectangle {
                 implicitWidth: 38
                 implicitHeight: 22
                 radius: 11
-                color: parent.checked ? root.accent : root.surfaceUp
-                border.color: parent.checked ? root.accent : root.line
+                color: control.checked ? root.accent : root.surfaceUp
+                border.color: control.checked ? root.accent : root.line
                 Rectangle {
-                    x: parent.checked ? parent.width - width - 3 : 3
+                    // `control.checked`, not `parent.checked`: the knob's
+                    // parent is this track Rectangle, which has no `checked`,
+                    // so the old binding read undefined and the knob never
+                    // moved off its left seat.
+                    x: control.checked ? parent.width - width - 3 : 3
                     anchors.verticalCenter: parent.verticalCenter
                     width: 16; height: 16; radius: 8
-                    color: parent.checked ? root.accentFg : root.dim
+                    color: control.checked ? root.accentFg : root.dim
                     Behavior on x { NumberAnimation { duration: 120 } }
                 }
             }
