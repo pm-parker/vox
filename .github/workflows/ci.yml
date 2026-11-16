@@ -22,7 +22,7 @@ concurrency:
 jobs:
   build-test:
     runs-on: ubuntu-24.04
-    container: debian:trixie
+    container: debian:trixie@sha256:9c6e381421d0f48d1b8133e573f33c185ee16cbf505eda9c4a8a4791b25ea8a6  # trixie
     steps:
       - name: Install toolchain (Qt 6 + g++ + make + shellcheck)
         run: |
@@ -31,7 +31,9 @@ jobs:
             ca-certificates git g++ make python3 shellcheck \
             qmake6 qt6-base-dev qt6-base-dev-tools qt6-declarative-dev qt6-declarative-dev-tools \
             qt6-svg-dev libgl-dev
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
       - name: Lint shell scripts (shellcheck)
         # SC1007: `CDPATH= cd` 是有意的 POSIX 写法, 不是误写的赋值
         run: shellcheck -S warning -e SC1007 bin/* pkgbuild/omarchy-*
