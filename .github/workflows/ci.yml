@@ -1,0 +1,49 @@
+# DuckVox CI: lint + 构建 + 单元测试
+#
+# 在 debian:trixie 容器里用发行版 Qt 6.8 构建 (本地开发/打包是 Arch Qt 6.x, qmake 工程两边通用)。
+#   - lint: C++ 以 -Werror 编译 (-Wall -Wextra 告警清零即门禁); shellcheck 检查 bin/ 与 pkgbuild 脚本;
+#           qmllint 检查 QML (语法/导入错误阻断, 上下文属性导致的 unqualified 等告警只提示)
+#   - build: qmake6 + make 构建 duckvox (源码外构建到 build/, 不碰仓库里提交的 Makefile)
+#   - test: bin/test 跑 QtTest (vox_tests, offscreen)
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-test:
+    runs-on: ubuntu-24.04
+    container: debian:trixie
+    steps:
+      - name: Install toolchain (Qt 6 + g++ + make + shellcheck)
+        run: |
+          apt-get update
+          DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+            ca-certificates git g++ make python3 shellcheck \
+            qmake6 qt6-base-dev qt6-base-dev-tools qt6-declarative-dev qt6-declarative-dev-tools \
+            qt6-svg-dev libgl-dev
+      - uses: actions/checkout@v4
+      - name: Lint shell scripts (shellcheck)
+        # SC1007: `CDPATH= cd` 是有意的 POSIX 写法, 不是误写的赋值
+        run: shellcheck -S warning -e SC1007 bin/* pkgbuild/omarchy-*
+      - name: Lint QML (qmllint)
+        run: /usr/lib/qt6/bin/qmllint src/ui/*.qml
+      - name: Build (-Werror)
+        run: |
+          mkdir -p build
+          cd build
+          qmake6 "QMAKE_CXXFLAGS+=-Werror" ../vox.pro
+          make -j"$(nproc)"
+      - name: Smoke check (binary starts, prints version)
+        run: timeout 10 ./build/duckvox --version | grep -E "^duckvox [0-9]+\.[0-9]+\.[0-9]+"
+      - name: Unit tests (QtTest, offscreen)
+        run: sh bin/test
